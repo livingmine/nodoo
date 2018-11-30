@@ -1,9 +1,7 @@
 import { Either, left, right } from 'fp-ts/lib/Either'
 const xmlrpc = require('xmlrpc')
 
-// Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
-// import 'core-js/fn/array.find'
-// ...
+import 'core-js/fn/object/values'
 
 interface XMLRPCClient {
   methodCall: any
