@@ -235,6 +235,53 @@ describe('Calling Methods Test', () => {
     }
   })
 
+  it('can not list records', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    const resp = 'An Error'
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createSearch('res.partner', [], { limit: 2, offset: 1 }),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'search':
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'searchCount':
+            case 'searchRead':
+            case 'nameSearch':
+            case 'update':
+              return
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
   it('can count records', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
 
@@ -255,7 +302,6 @@ describe('Calling Methods Test', () => {
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
         (error: XMLRPCClientError) => {
-          console.log(error)
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -273,6 +319,49 @@ describe('Calling Methods Test', () => {
               done()
               return
             }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not count records', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    const resp = 'An Error'
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(authenticatedClient, createSearchCount('res.partner', []), callback)
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'searchRead':
+            case 'update':
+            case 'search':
+            case 'nameSearch':
+            case 'searchCount':
+              return
             default:
               const exhaustiveCheck: never = result
           }
@@ -311,7 +400,6 @@ describe('Calling Methods Test', () => {
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
         (error: XMLRPCClientError) => {
-          console.log(error)
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -329,6 +417,54 @@ describe('Calling Methods Test', () => {
               done()
               return
             }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it("can not read records' fields", done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createRead('res.partner', [[6]], ['name']),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'read':
+              return
             default:
               const exhaustiveCheck: never = result
           }
@@ -396,6 +532,57 @@ describe('Calling Methods Test', () => {
     }
   })
 
+  it("can not search and read records' fields", done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createSearchRead('res.partner', [], {
+        fields: ['name'],
+        limit: 5
+      }),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'update':
+            case 'nameSearch':
+            case 'searchRead':
+              return
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
   it("can search and read records' fields with name representation", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
 
@@ -442,6 +629,58 @@ describe('Calling Methods Test', () => {
               done()
               return
             }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it("can not search and read records' fields with name representation", done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createNameSearch('res.partner', 'Admin', {
+        args: [['is_company', '=', true]],
+        operator: 'ilike',
+        limit: 5
+      }),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+              return
             default:
               const exhaustiveCheck: never = result
           }
@@ -503,6 +742,57 @@ describe('Calling Methods Test', () => {
     }
   })
 
+  it('can not create record', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // In odoo, creating a record returns only the ID of the created record.
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createCreate('res.partner', {
+        name: 'New User'
+      }),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+              return
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
   it('can update record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
 
@@ -518,7 +808,7 @@ describe('Calling Methods Test', () => {
     const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
       callback(null, resp)
     })
-    // authenticatedClient.client.methodCall = methodCallFn;
+    authenticatedClient.client.methodCall = methodCallFn
 
     executeAuthenticatedClient(
       authenticatedClient,
@@ -546,6 +836,58 @@ describe('Calling Methods Test', () => {
             case 'update': {
               expect(result.result).toBe(resp)
               done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not update record', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // In odoo, updating a record returns a boolean.
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createUpdate('res.partner', [7, 8], {
+        name: 'New User Again'
+      }),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'delete':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'nameSearch':
+            case 'update': {
               return
             }
             default:
@@ -597,6 +939,53 @@ describe('Calling Methods Test', () => {
               done()
               return
             }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not delete record', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // In odoo, deleting a record returns a boolean.
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(authenticatedClient, createDelete('res.partner', [[126]]), callback)
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create': {
+              return
+            }
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+              return
             default:
               const exhaustiveCheck: never = result
           }
