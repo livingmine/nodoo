@@ -1,4 +1,4 @@
-import { Either, left, right } from 'fp-ts/lib/either'
+import { Either, left, right } from 'fp-ts/lib/Either'
 const xmlrpc = require('xmlrpc')
 
 // Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
