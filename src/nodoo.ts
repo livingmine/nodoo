@@ -175,6 +175,19 @@ interface NameSearch {
   optionalParameters?: any
 }
 
+interface DefaultGet {
+  kind: 'defaultGet'
+  modelName: string
+  fieldsNames: Array<string>
+}
+
+interface FieldsGet {
+  kind: 'fieldsGet'
+  modelName: string
+  fieldsNames?: Array<string>
+  attributes?: Array<string>
+}
+
 interface BaseResult {
   result: any
 }
@@ -219,6 +232,14 @@ interface UpdateResult extends BaseResult {
   kind: 'update'
 }
 
+interface DefaultGetResult extends BaseResult {
+  kind: 'defaultGet'
+}
+
+interface FieldsGetResult extends BaseResult {
+  kind: 'fieldsGet'
+}
+
 export type UnauthenticatedOperationResult = AuthenticateResult | FetchCommonInformationResult
 
 export type AuthenticatedOperationResult =
@@ -230,6 +251,8 @@ export type AuthenticatedOperationResult =
   | SearchReadResult
   | NameSearchResult
   | UpdateResult
+  | DefaultGetResult
+  | FieldsGetResult
 
 type UnauthenticatedOperation = Authenticate | FetchCommonInformation
 type AuthenticatedOperation =
@@ -241,6 +264,8 @@ type AuthenticatedOperation =
   | SearchRead
   | NameSearch
   | Update
+  | DefaultGet
+  | FieldsGet
 
 export const executeAuthenticatedClient = (
   client: AuthenticatedClient,
@@ -383,6 +408,38 @@ export const executeAuthenticatedClient = (
             callback(left(error))
           } else {
             callback(right(createUpdateResult(value)))
+          }
+        }
+      )
+      return
+    }
+    case 'defaultGet': {
+      client.client.methodCall(
+        'execute_kw',
+        Object.values(client.authenticatedData).concat(operation.modelName, 'default_get', [
+          [operation.fieldsNames]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(error))
+          } else {
+            callback(right(createDefaultGetResult(value)))
+          }
+        }
+      )
+      return
+    }
+    case 'fieldsGet': {
+      client.client.methodCall(
+        'execute_kw',
+        Object.values(client.authenticatedData).concat(operation.modelName, 'fields_get', [
+          [operation.fieldsNames].concat(operation.attributes)
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(error))
+          } else {
+            callback(right(createFieldsGetResult(value)))
           }
         }
       )
@@ -550,6 +607,31 @@ export const createUpdate = (modelName: string, ids: Array<number>, fieldsValues
   return update
 }
 
+export const createDefaultGet = (modelName: string, fieldsNames: Array<string>): DefaultGet => {
+  const defaultGet: DefaultGet = {
+    kind: 'defaultGet',
+    modelName: modelName,
+    fieldsNames: fieldsNames
+  }
+
+  return defaultGet
+}
+
+export const createFieldsGet = (
+  modelName: string,
+  fieldsNames?: Array<string>,
+  attributes?: Array<string>
+): FieldsGet => {
+  const fieldsGet: FieldsGet = {
+    kind: 'fieldsGet',
+    modelName: modelName,
+    fieldsNames: fieldsNames,
+    attributes: attributes
+  }
+
+  return fieldsGet
+}
+
 const createAuthenticateResult = (uid: number): AuthenticateResult => ({
   kind: 'authenticate',
   uid
@@ -597,5 +679,15 @@ const createNameSearchResult = (result: any): NameSearchResult => ({
 
 const createUpdateResult = (result: any): UpdateResult => ({
   kind: 'update',
+  result: result
+})
+
+const createDefaultGetResult = (result: any): DefaultGetResult => ({
+  kind: 'defaultGet',
+  result: result
+})
+
+const createFieldsGetResult = (result: any): FieldsGetResult => ({
+  kind: 'fieldsGet',
   result: result
 })
