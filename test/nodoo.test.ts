@@ -19,7 +19,8 @@ import {
   executeUnauthenticatedClient,
   UnauthenticatedOperationResult,
   XMLRPCClientError,
-  createFieldsGet
+  createFieldsGet,
+  createNameGet
 } from '../src/nodoo'
 
 import { Either } from 'fp-ts/lib/Either'
@@ -230,6 +231,7 @@ describe('Calling Methods Test', () => {
             case 'update':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -279,6 +281,7 @@ describe('Calling Methods Test', () => {
             case 'update':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -321,6 +324,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'searchCount': {
               expect(result.result).toEqual(resp)
@@ -371,6 +375,7 @@ describe('Calling Methods Test', () => {
             case 'searchCount':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -423,6 +428,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'read': {
               expect(result.result).toBe(resp)
@@ -478,6 +484,7 @@ describe('Calling Methods Test', () => {
             case 'read':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -534,6 +541,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'searchRead': {
               expect(result.result).toBe(resp)
@@ -592,6 +600,7 @@ describe('Calling Methods Test', () => {
             case 'searchRead':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -643,6 +652,7 @@ describe('Calling Methods Test', () => {
             case 'update':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'nameSearch': {
               expect(result.result).toBe(resp)
@@ -702,6 +712,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -757,6 +768,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -810,6 +822,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -860,6 +873,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'update': {
               expect(result.result).toBe(resp)
@@ -917,6 +931,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
             case 'update': {
               return
             }
@@ -965,6 +980,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'delete': {
               expect(result.result).toBe(resp)
@@ -1019,6 +1035,7 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1100,6 +1117,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'delete':
             case 'fieldsGet':
+            case 'nameGet':
               return
             case 'defaultGet': {
               expect(Object.keys(result.result).length).toBe(resp)
@@ -1187,6 +1205,7 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1237,6 +1256,7 @@ describe('Calling Methods Test', () => {
             case 'nameSearch':
             case 'delete':
             case 'defaultGet':
+            case 'nameGet':
               return
             case 'fieldsGet': {
               expect(result.result['state']['selection'].length).toBe(resp)
@@ -1295,7 +1315,109 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'nameGet':
               return
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can name get a model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // Name get a purchase order model returns array of one array of the id and the name of the record
+    const resp = [[1, 'PO00001']]
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', 1), callback)
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'nameGet': {
+              expect(result.result).toBe(resp)
+              done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not name get a model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // Name get a purchase order model returns array of one array of the id and the name of the record
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', 1), callback)
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'nameGet': {
+              expect(result.result).toBe(resp)
+              done()
+              return
+            }
             default:
               const exhaustiveCheck: never = result
           }

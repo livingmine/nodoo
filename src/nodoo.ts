@@ -188,6 +188,12 @@ interface FieldsGet {
   attributes?: Array<string>
 }
 
+interface NameGet {
+  kind: 'nameGet'
+  modelName: string
+  id: number
+}
+
 interface BaseResult {
   result: any
 }
@@ -240,6 +246,10 @@ interface FieldsGetResult extends BaseResult {
   kind: 'fieldsGet'
 }
 
+interface NameGetResult extends BaseResult {
+  kind: 'nameGet'
+}
+
 export type UnauthenticatedOperationResult = AuthenticateResult | FetchCommonInformationResult
 
 export type AuthenticatedOperationResult =
@@ -253,6 +263,7 @@ export type AuthenticatedOperationResult =
   | UpdateResult
   | DefaultGetResult
   | FieldsGetResult
+  | NameGetResult
 
 type UnauthenticatedOperation = Authenticate | FetchCommonInformation
 type AuthenticatedOperation =
@@ -266,6 +277,7 @@ type AuthenticatedOperation =
   | Update
   | DefaultGet
   | FieldsGet
+  | NameGet
 
 export const executeAuthenticatedClient = (
   client: AuthenticatedClient,
@@ -440,6 +452,22 @@ export const executeAuthenticatedClient = (
             callback(left(error))
           } else {
             callback(right(createFieldsGetResult(value)))
+          }
+        }
+      )
+      return
+    }
+    case 'nameGet': {
+      client.client.methodCall(
+        'execute_kw',
+        Object.values(client.authenticatedData).concat(operation.modelName, 'name_get', [
+          [operation.id]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(error))
+          } else {
+            callback(right(createNameGetResult(value)))
           }
         }
       )
@@ -632,6 +660,16 @@ export const createFieldsGet = (
   return fieldsGet
 }
 
+export const createNameGet = (modelName: string, id: number): NameGet => {
+  const nameGet: NameGet = {
+    kind: 'nameGet',
+    modelName: modelName,
+    id: id
+  }
+
+  return nameGet
+}
+
 const createAuthenticateResult = (uid: number): AuthenticateResult => ({
   kind: 'authenticate',
   uid
@@ -689,5 +727,10 @@ const createDefaultGetResult = (result: any): DefaultGetResult => ({
 
 const createFieldsGetResult = (result: any): FieldsGetResult => ({
   kind: 'fieldsGet',
+  result: result
+})
+
+const createNameGetResult = (result: any): NameGetResult => ({
+  kind: 'nameGet',
   result: result
 })
