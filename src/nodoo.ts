@@ -191,7 +191,7 @@ interface FieldsGet {
 interface NameGet {
   kind: 'nameGet'
   modelName: string
-  id: number
+  ids: Array<number>
 }
 
 interface BaseResult {
@@ -461,7 +461,7 @@ export const executeAuthenticatedClient = (
       client.client.methodCall(
         'execute_kw',
         Object.values(client.authenticatedData).concat(operation.modelName, 'name_get', [
-          [operation.id]
+          [operation.ids]
         ]),
         (error: XMLRPCClientError, value: any) => {
           if (error) {
@@ -660,11 +660,11 @@ export const createFieldsGet = (
   return fieldsGet
 }
 
-export const createNameGet = (modelName: string, id: number): NameGet => {
+export const createNameGet = (modelName: string, ids: Array<number>): NameGet => {
   const nameGet: NameGet = {
     kind: 'nameGet',
     modelName: modelName,
-    id: id
+    ids: ids
   }
 
   return nameGet

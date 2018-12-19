@@ -1342,7 +1342,7 @@ describe('Calling Methods Test', () => {
     })
     authenticatedClient.client.methodCall = methodCallFn
 
-    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', 1), callback)
+    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', [1]), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1392,7 +1392,7 @@ describe('Calling Methods Test', () => {
     })
     authenticatedClient.client.methodCall = methodCallFn
 
-    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', 1), callback)
+    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', [1]), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
