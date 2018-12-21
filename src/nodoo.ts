@@ -194,6 +194,14 @@ interface NameGet {
   ids: Array<number>
 }
 
+interface OnChange {
+  kind: 'onChange'
+  modelName: string
+  values: any
+  fieldName: Array<string>
+  fieldOnChange: any
+}
+
 interface BaseResult {
   result: any
 }
@@ -250,6 +258,10 @@ interface NameGetResult extends BaseResult {
   kind: 'nameGet'
 }
 
+interface OnChangeResult extends BaseResult {
+  kind: 'onChange'
+}
+
 export type UnauthenticatedOperationResult = AuthenticateResult | FetchCommonInformationResult
 
 export type AuthenticatedOperationResult =
@@ -264,6 +276,7 @@ export type AuthenticatedOperationResult =
   | DefaultGetResult
   | FieldsGetResult
   | NameGetResult
+  | OnChangeResult
 
 type UnauthenticatedOperation = Authenticate | FetchCommonInformation
 type AuthenticatedOperation =
@@ -278,6 +291,7 @@ type AuthenticatedOperation =
   | DefaultGet
   | FieldsGet
   | NameGet
+  | OnChange
 
 export const executeAuthenticatedClient = (
   client: AuthenticatedClient,
@@ -468,6 +482,22 @@ export const executeAuthenticatedClient = (
             callback(left(error))
           } else {
             callback(right(createNameGetResult(value)))
+          }
+        }
+      )
+      return
+    }
+    case 'onChange': {
+      client.client.methodCall(
+        'execute_kw',
+        Object.values(client.authenticatedData).concat(operation.modelName, 'onchange', [
+          [[], operation.values, operation.fieldName, operation.fieldOnChange]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(error))
+          } else {
+            callback(right(createOnChangeResult(value)))
           }
         }
       )
@@ -670,6 +700,23 @@ export const createNameGet = (modelName: string, ids: Array<number>): NameGet =>
   return nameGet
 }
 
+export const createOnChange = (
+  modelName: string,
+  values: any,
+  fieldName: Array<string>,
+  fieldOnChange: any
+): OnChange => {
+  const onChange: OnChange = {
+    kind: 'onChange',
+    modelName: modelName,
+    values: values,
+    fieldName: fieldName,
+    fieldOnChange: fieldOnChange
+  }
+
+  return onChange
+}
+
 const createAuthenticateResult = (uid: number): AuthenticateResult => ({
   kind: 'authenticate',
   uid
@@ -732,5 +779,10 @@ const createFieldsGetResult = (result: any): FieldsGetResult => ({
 
 const createNameGetResult = (result: any): NameGetResult => ({
   kind: 'nameGet',
+  result: result
+})
+
+const createOnChangeResult = (result: any): OnChangeResult => ({
+  kind: 'onChange',
   result: result
 })

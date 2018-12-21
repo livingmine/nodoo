@@ -20,7 +20,8 @@ import {
   UnauthenticatedOperationResult,
   XMLRPCClientError,
   createFieldsGet,
-  createNameGet
+  createNameGet,
+  createOnChange
 } from '../src/nodoo'
 
 import { Either } from 'fp-ts/lib/Either'
@@ -47,7 +48,7 @@ describe('Common Info Test', () => {
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: UnauthenticatedOperationResult) => {
@@ -126,7 +127,7 @@ describe('Authentication Test', () => {
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: UnauthenticatedOperationResult) => {
@@ -212,7 +213,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -232,6 +233,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -282,6 +284,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -310,7 +313,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -325,6 +328,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'searchCount': {
               expect(result.result).toEqual(resp)
@@ -376,6 +380,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -414,7 +419,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -429,6 +434,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'read': {
               expect(result.result).toBe(resp)
@@ -485,6 +491,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -527,7 +534,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -542,6 +549,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'searchRead': {
               expect(result.result).toBe(resp)
@@ -601,6 +609,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -638,7 +647,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -653,6 +662,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'nameSearch': {
               expect(result.result).toBe(resp)
@@ -713,6 +723,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -749,7 +760,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -769,6 +780,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -823,6 +835,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -859,7 +872,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -874,6 +887,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'update': {
               expect(result.result).toBe(resp)
@@ -932,6 +946,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
             case 'update': {
               return
             }
@@ -964,7 +979,7 @@ describe('Calling Methods Test', () => {
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
+        (_: XMLRPCClientError) => {
           return
         },
         (result: AuthenticatedOperationResult) => {
@@ -981,6 +996,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'delete': {
               expect(result.result).toBe(resp)
@@ -1036,6 +1052,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1118,6 +1135,7 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'defaultGet': {
               expect(Object.keys(result.result).length).toBe(resp)
@@ -1206,6 +1224,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1232,11 +1251,7 @@ describe('Calling Methods Test', () => {
     })
     // authenticatedClient.client.methodCall = methodCallFn
 
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createFieldsGet('purchase.order', ['state']),
-      callback
-    )
+    executeAuthenticatedClient(authenticatedClient, createFieldsGet('purchase.order', []), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1257,6 +1272,7 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'nameGet':
+            case 'onChange':
               return
             case 'fieldsGet': {
               expect(result.result['state']['selection'].length).toBe(resp)
@@ -1316,6 +1332,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'onChange':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1347,6 +1364,7 @@ describe('Calling Methods Test', () => {
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
         (error: XMLRPCClientError) => {
+          console.log(error)
           done()
           return
         },
@@ -1362,6 +1380,7 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'onChange':
             case 'nameGet': {
               expect(result.result).toBe(resp)
               done()
@@ -1413,8 +1432,362 @@ describe('Calling Methods Test', () => {
             case 'delete':
             case 'defaultGet':
             case 'fieldsGet':
+            case 'onChange':
             case 'nameGet': {
               expect(result.result).toBe(resp)
+              done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can onchange a model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // The first onchange when opening the purchase order form returns the following object
+    const resp = {
+      value: {
+        default_location_dest_id_usage: 'internal',
+        currency_id: false
+      }
+    }
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createOnChange(
+        'purchase.order',
+        {
+          state: 'draft',
+          picking_count: 0,
+          invoice_count: 0,
+          name: 'New',
+          currency_id: 3,
+          date_order: '2018-12-19 04:51:04',
+          company_id: 1,
+          picking_type_id: 4,
+          invoice_status: 'no',
+          picking_ids: [[6, false, []]],
+          invoice_ids: [[6, false, []]],
+          partner_id: false,
+          partner_ref: false,
+          is_shipped: false,
+          origin: false,
+          order_line: [],
+          amount_untaxed: 0,
+          amount_tax: 0,
+          amount_total: 0,
+          notes: false,
+          date_planned: false,
+          dest_address_id: false,
+          default_location_dest_id_usage: false,
+          incoterm_id: false,
+          payment_term_id: false,
+          fiscal_position_id: false,
+          date_approve: false,
+          message_follower_ids: [],
+          activity_ids: [],
+          message_ids: []
+        },
+        [
+          'state',
+          'picking_count',
+          'picking_ids',
+          'invoice_count',
+          'invoice_ids',
+          'name',
+          'partner_id',
+          'partner_ref',
+          'currency_id',
+          'is_shipped',
+          'date_order',
+          'origin',
+          'company_id',
+          'order_line',
+          'amount_untaxed',
+          'amount_tax',
+          'amount_total',
+          'notes',
+          'date_planned',
+          'picking_type_id',
+          'dest_address_id',
+          'default_location_dest_id_usage',
+          'incoterm_id',
+          'invoice_status',
+          'payment_term_id',
+          'fiscal_position_id',
+          'date_approve',
+          'message_follower_ids',
+          'activity_ids',
+          'message_ids'
+        ],
+        {
+          state: '1',
+          picking_count: '',
+          picking_ids: '1',
+          invoice_count: '',
+          invoice_ids: '',
+          name: '',
+          partner_id: '1',
+          partner_ref: '',
+          currency_id: '1',
+          is_shipped: '',
+          date_order: '',
+          origin: '',
+          company_id: '1',
+          order_line: '1',
+          'order_line.currency_id': '',
+          'order_line.state': '',
+          'order_line.sequence': '',
+          'order_line.product_id': '1',
+          'order_line.name': '',
+          'order_line.move_dest_ids': '',
+          'order_line.date_planned': '1',
+          'order_line.company_id': '',
+          'order_line.account_analytic_id': '',
+          'order_line.analytic_tag_ids': '',
+          'order_line.product_qty': '1',
+          'order_line.qty_received': '1',
+          'order_line.qty_invoiced': '1',
+          'order_line.product_uom': '1',
+          'order_line.price_unit': '1',
+          'order_line.taxes_id': '1',
+          'order_line.price_subtotal': '',
+          'order_line.invoice_lines': '1',
+          'order_line.move_ids': '1',
+          amount_untaxed: '',
+          amount_tax: '',
+          amount_total: '',
+          notes: '',
+          date_planned: '',
+          picking_type_id: '1',
+          dest_address_id: '',
+          default_location_dest_id_usage: '',
+          incoterm_id: '',
+          invoice_status: '',
+          payment_term_id: '',
+          fiscal_position_id: '1',
+          date_approve: '',
+          message_follower_ids: '',
+          activity_ids: '',
+          message_ids: ''
+        }
+      ),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          console.log(error)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'nameGet':
+              return
+            case 'onChange': {
+              expect(result.result).toEqual(resp)
+              done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not onchange a model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    const authenticatedClient = createAuthenticatedClient(
+      createClientOptions('13.229.83.42', 8069),
+      authenticationData,
+      1
+    )
+
+    // The first onchange when opening the purchase order form returns the following object
+    const resp = 'An Error'
+
+    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(resp, null)
+    })
+    authenticatedClient.client.methodCall = methodCallFn
+
+    executeAuthenticatedClient(
+      authenticatedClient,
+      createOnChange(
+        'purchase.order',
+        {
+          state: 'draft',
+          picking_count: 0,
+          invoice_count: 0,
+          name: 'New',
+          currency_id: 3,
+          date_order: '2018-12-19 04:51:04',
+          company_id: 1,
+          picking_type_id: 4,
+          invoice_status: 'no',
+          picking_ids: [[6, false, []]],
+          invoice_ids: [[6, false, []]],
+          partner_id: false,
+          partner_ref: false,
+          is_shipped: false,
+          origin: false,
+          order_line: [],
+          amount_untaxed: 0,
+          amount_tax: 0,
+          amount_total: 0,
+          notes: false,
+          date_planned: false,
+          dest_address_id: false,
+          default_location_dest_id_usage: false,
+          incoterm_id: false,
+          payment_term_id: false,
+          fiscal_position_id: false,
+          date_approve: false,
+          message_follower_ids: [],
+          activity_ids: [],
+          message_ids: []
+        },
+        [
+          'state',
+          'picking_count',
+          'picking_ids',
+          'invoice_count',
+          'invoice_ids',
+          'name',
+          'partner_id',
+          'partner_ref',
+          'currency_id',
+          'is_shipped',
+          'date_order',
+          'origin',
+          'company_id',
+          'order_line',
+          'amount_untaxed',
+          'amount_tax',
+          'amount_total',
+          'notes',
+          'date_planned',
+          'picking_type_id',
+          'dest_address_id',
+          'default_location_dest_id_usage',
+          'incoterm_id',
+          'invoice_status',
+          'payment_term_id',
+          'fiscal_position_id',
+          'date_approve',
+          'message_follower_ids',
+          'activity_ids',
+          'message_ids'
+        ],
+        {
+          state: '1',
+          picking_count: '',
+          picking_ids: '1',
+          invoice_count: '',
+          invoice_ids: '',
+          name: '',
+          partner_id: '1',
+          partner_ref: '',
+          currency_id: '1',
+          is_shipped: '',
+          date_order: '',
+          origin: '',
+          company_id: '1',
+          order_line: '1',
+          'order_line.currency_id': '',
+          'order_line.state': '',
+          'order_line.sequence': '',
+          'order_line.product_id': '1',
+          'order_line.name': '',
+          'order_line.move_dest_ids': '',
+          'order_line.date_planned': '1',
+          'order_line.company_id': '',
+          'order_line.account_analytic_id': '',
+          'order_line.analytic_tag_ids': '',
+          'order_line.product_qty': '1',
+          'order_line.qty_received': '1',
+          'order_line.qty_invoiced': '1',
+          'order_line.product_uom': '1',
+          'order_line.price_unit': '1',
+          'order_line.taxes_id': '1',
+          'order_line.price_subtotal': '',
+          'order_line.invoice_lines': '1',
+          'order_line.move_ids': '1',
+          amount_untaxed: '',
+          amount_tax: '',
+          amount_total: '',
+          notes: '',
+          date_planned: '',
+          picking_type_id: '1',
+          dest_address_id: '',
+          default_location_dest_id_usage: '',
+          incoterm_id: '',
+          invoice_status: '',
+          payment_term_id: '',
+          fiscal_position_id: '1',
+          date_approve: '',
+          message_follower_ids: '',
+          activity_ids: '',
+          message_ids: ''
+        }
+      ),
+      callback
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'nameGet':
+              return
+            case 'onChange': {
+              expect(result.result).toEqual(resp)
               done()
               return
             }
