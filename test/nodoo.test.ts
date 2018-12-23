@@ -3,7 +3,7 @@ import {
   createAuthenticate,
   createAuthenticatedClient,
   createAuthenticationData,
-  createClientOptions,
+  createSecureClientOptions,
   createCreate,
   createDelete,
   createFetchCommonInformation,
@@ -21,17 +21,74 @@ import {
   XMLRPCClientError,
   createFieldsGet,
   createNameGet,
-  createOnChange
+  createOnChange,
+  createInsecureClientOptions
 } from '../src/nodoo'
+import { fieldsGetResult } from './methodsResult'
 
 import { Either } from 'fp-ts/lib/Either'
 
+describe('Client Preparation Test', () => {
+  it('can create secure client', done => {
+    const host = 'odoo.topbrand.rubyh.co'
+    const secureClient = createSecureClientOptions(host)
+
+    expect(secureClient).toEqual({
+      kind: 'secure',
+      host
+    })
+    done()
+  })
+
+  it('can create insecure client', done => {
+    const host = 'odoo.topbrand.rubyh.co'
+    const port = 8069
+    const insecureClient = createInsecureClientOptions(host, port)
+
+    expect(insecureClient).toEqual({
+      kind: 'insecure',
+      host,
+      port
+    })
+    done()
+  })
+
+  it('can create secure unauthenticated client', done => {
+    const host = 'odoo.topbrand.rubyh.co'
+    const secureClient = createSecureClientOptions(host)
+
+    createUnauthenticatedClient(secureClient).fold(
+      error => {
+        expect(error).toBe('Fail to create unauthenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        expect(unauthenticatedClient.kind).toBe('unauthenticated')
+        done()
+      }
+    )
+  })
+
+  it('can create secure authenticated client', done => {
+    const host = 'odoo.topbrand.rubyh.co'
+    const secureClient = createSecureClientOptions(host)
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+
+    createAuthenticatedClient(secureClient, authenticationData, 1).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        expect(unauthenticatedClient.kind).toBe('authenticated')
+        done()
+      }
+    )
+  })
+})
+
 describe('Common Info Test', () => {
   it('can get common info', done => {
-    const unauthenticatedClient = createUnauthenticatedClient(
-      createClientOptions('13.229.83.42', 8069)
-    )
-
     const resp = {
       server_version: '11.0',
       server_version_info: [11, 0, 0, 'final', 0, ''],
@@ -39,12 +96,23 @@ describe('Common Info Test', () => {
       protocol_version: 1
     }
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    unauthenticatedClient.client.methodCall = methodCallFn
-
-    executeUnauthenticatedClient(unauthenticatedClient, createFetchCommonInformation(), callback)
+    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
+      error => {
+        expect(error).toBe('Fail to create unauthenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        unauthenticatedClient.client.methodCall = methodCallFn
+        executeUnauthenticatedClient(
+          unauthenticatedClient,
+          createFetchCommonInformation(),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
       result.fold(
@@ -70,18 +138,25 @@ describe('Common Info Test', () => {
   })
 
   it('handle error correctly when unable to get common info', done => {
-    const unauthenticatedClient = createUnauthenticatedClient(
-      createClientOptions('13.229.83.42', 8069)
-    )
-
     const errorMessage = 'An error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(errorMessage, null)
-    })
-    unauthenticatedClient.client.methodCall = methodCallFn
-
-    executeUnauthenticatedClient(unauthenticatedClient, createFetchCommonInformation(), callback)
+    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
+      error => {
+        expect(error).toBe('Fail to create unauthenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(errorMessage, null)
+        })
+        unauthenticatedClient.client.methodCall = methodCallFn
+        executeUnauthenticatedClient(
+          unauthenticatedClient,
+          createFetchCommonInformation(),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
       result.fold(
@@ -109,20 +184,24 @@ describe('Common Info Test', () => {
 
 describe('Authentication Test', () => {
   it('can authenticate with correct data', done => {
-    const unauthenticatedClient = createUnauthenticatedClient(
-      createClientOptions('13.229.83.42', 8069)
-    )
-
     const resp = 1
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    unauthenticatedClient.client.methodCall = methodCallFn
 
-    executeUnauthenticatedClient(
-      unauthenticatedClient,
-      createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
-      callback
+    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
+      error => {
+        expect(error).toBe('Fail to create unauthenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        unauthenticatedClient.client.methodCall = methodCallFn
+        executeUnauthenticatedClient(
+          unauthenticatedClient,
+          createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
@@ -149,20 +228,24 @@ describe('Authentication Test', () => {
   })
 
   it('handle error correctly when authentication fail', done => {
-    const unauthenticatedClient = createUnauthenticatedClient(
-      createClientOptions('13.229.83.42', 8069)
-    )
-
     const errorMessage = 'An error'
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(errorMessage, null)
-    })
-    unauthenticatedClient.client.methodCall = methodCallFn
 
-    executeUnauthenticatedClient(
-      unauthenticatedClient,
-      createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
-      callback
+    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
+      error => {
+        expect(error).toBe('Fail to create unauthenticated client.')
+        done()
+      },
+      unauthenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(errorMessage, null)
+        })
+        unauthenticatedClient.client.methodCall = methodCallFn
+        executeUnauthenticatedClient(
+          unauthenticatedClient,
+          createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
@@ -191,24 +274,30 @@ describe('Authentication Test', () => {
 
 describe('Calling Methods Test', () => {
   it('can list records', done => {
+    const resp = [127, 126]
+
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
-    )
-
-    const resp = [127, 126]
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createSearch('res.partner', [], { limit: 2, offset: 1 }),
-      callback
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearch('res.partner', [], { limit: 2, offset: 1 }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -245,23 +334,28 @@ describe('Calling Methods Test', () => {
 
   it('can not list records', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    const resp = 'An Error'
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
-    )
-
-    const resp = 'An Error'
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createSearch('res.partner', [], { limit: 2, offset: 1 }),
-      callback
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearch('res.partner', [], { limit: 2, offset: 1 }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -296,20 +390,29 @@ describe('Calling Methods Test', () => {
 
   it('can count records', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    const resp = 7
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearchCount('res.partner', []),
+          callback
+        )
+      }
     )
-
-    const resp = 7
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createSearchCount('res.partner', []), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -345,20 +448,29 @@ describe('Calling Methods Test', () => {
 
   it('can not count records', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    const resp = 'An Error'
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearchCount('res.partner', []),
+          callback
+        )
+      }
     )
-
-    const resp = 'An Error'
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createSearchCount('res.partner', []), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -392,13 +504,6 @@ describe('Calling Methods Test', () => {
 
   it("can read records' fields", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = [
       {
         id: 6,
@@ -406,15 +511,26 @@ describe('Calling Methods Test', () => {
       }
     ]
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createRead('res.partner', [[6]], ['name']),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createRead('res.partner', [[6]], ['name']),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -451,24 +567,28 @@ describe('Calling Methods Test', () => {
 
   it("can not read records' fields", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createRead('res.partner', [[6]], ['name']),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createRead('res.partner', [[6]], ['name']),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -503,13 +623,6 @@ describe('Calling Methods Test', () => {
 
   it("can search and read records' fields", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = [
       { id: 3, name: 'Administrator' },
       { id: 123, name: 'Andi' },
@@ -518,18 +631,29 @@ describe('Calling Methods Test', () => {
       { id: 127, name: 'Andi' }
     ]
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createSearchRead('res.partner', [], {
-        fields: ['name'],
-        limit: 5
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearchRead('res.partner', [], {
+            fields: ['name'],
+            limit: 5
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -566,27 +690,31 @@ describe('Calling Methods Test', () => {
 
   it("can not search and read records' fields", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createSearchRead('res.partner', [], {
-        fields: ['name'],
-        limit: 5
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createSearchRead('res.partner', [], {
+            fields: ['name'],
+            limit: 5
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -621,28 +749,32 @@ describe('Calling Methods Test', () => {
 
   it("can search and read records' fields with name representation", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = [[3, 'Administrator']]
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createNameSearch('res.partner', 'Admin', {
-        args: [['is_company', '=', true]],
-        operator: 'ilike',
-        limit: 5
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createNameSearch('res.partner', 'Admin', {
+            args: [['is_company', '=', true]],
+            operator: 'ilike',
+            limit: 5
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -679,28 +811,32 @@ describe('Calling Methods Test', () => {
 
   it("can not search and read records' fields with name representation", done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createNameSearch('res.partner', 'Admin', {
-        args: [['is_company', '=', true]],
-        operator: 'ilike',
-        limit: 5
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createNameSearch('res.partner', 'Admin', {
+            args: [['is_company', '=', true]],
+            operator: 'ilike',
+            limit: 5
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -735,27 +871,31 @@ describe('Calling Methods Test', () => {
 
   it('can create record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, creating a record returns only the ID of the created record.
     const resp = 128
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createCreate('res.partner', {
-        name: 'New User'
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createCreate('res.partner', {
+            name: 'New User'
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -792,27 +932,31 @@ describe('Calling Methods Test', () => {
 
   it('can not create record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, creating a record returns only the ID of the created record.
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createCreate('res.partner', {
-        name: 'New User'
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createCreate('res.partner', {
+            name: 'New User'
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -847,27 +991,31 @@ describe('Calling Methods Test', () => {
 
   it('can update record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, updating a record returns a boolean.
     const resp = true
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createUpdate('res.partner', [7, 8], {
-        name: 'New User Again'
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createUpdate('res.partner', [7, 8], {
+            name: 'New User Again'
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -904,27 +1052,31 @@ describe('Calling Methods Test', () => {
 
   it('can not update record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, updating a record returns a boolean.
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createUpdate('res.partner', [7, 8], {
-        name: 'New User Again'
-      }),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createUpdate('res.partner', [7, 8], {
+            name: 'New User Again'
+          }),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -960,22 +1112,30 @@ describe('Calling Methods Test', () => {
 
   it('can delete record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, deleting a record returns a boolean.
     const resp = true
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createDelete('res.partner', [[126]]), callback)
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createDelete('res.partner', [[126]]),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1013,22 +1173,30 @@ describe('Calling Methods Test', () => {
 
   it('can not delete record', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, deleting a record returns a boolean.
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createDelete('res.partner', [[126]]), callback)
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createDelete('res.partner', [[126]]),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1064,56 +1232,70 @@ describe('Calling Methods Test', () => {
 
   it('can default get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    // Default get a purchase order model returns 9 default fields
+    const resp = {
+      date_order: '2018-12-23 07:20:38',
+      invoice_count: 0,
+      currency_id: 3,
+      picking_count: 0,
+      name: 'New',
+      state: 'draft',
+      invoice_status: 'no',
+      picking_type_id: 4,
+      company_id: 1
+    }
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
-    )
-
-    // Default get a purchase order model returns 9 default fields
-    const resp = 9
-
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    // authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createDefaultGet('purchase.order', [
-        'state',
-        'picking_count',
-        'picking_ids',
-        'invoice_count',
-        'invoice_ids',
-        'name',
-        'partner_id',
-        'partner_ref',
-        'currency_id',
-        'is_shipped',
-        'date_order',
-        'origin',
-        'company_id',
-        'order_line',
-        'amount_untaxed',
-        'amount_tax',
-        'amount_total',
-        'notes',
-        'date_planned',
-        'picking_type_id',
-        'dest_address_id',
-        'default_location_dest_id_usage',
-        'incoterm_id',
-        'invoice_status',
-        'payment_term_id',
-        'fiscal_position_id',
-        'date_approve',
-        'message_follower_ids',
-        'activity_ids',
-        'message_ids'
-      ]),
-      callback
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createDefaultGet('purchase.order', [
+            'state',
+            'picking_count',
+            'picking_ids',
+            'invoice_count',
+            'invoice_ids',
+            'name',
+            'partner_id',
+            'partner_ref',
+            'currency_id',
+            'is_shipped',
+            'date_order',
+            'origin',
+            'company_id',
+            'order_line',
+            'amount_untaxed',
+            'amount_tax',
+            'amount_total',
+            'notes',
+            'date_planned',
+            'picking_type_id',
+            'dest_address_id',
+            'default_location_dest_id_usage',
+            'incoterm_id',
+            'invoice_status',
+            'payment_term_id',
+            'fiscal_position_id',
+            'date_approve',
+            'message_follower_ids',
+            'activity_ids',
+            'message_ids'
+          ]),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -1138,7 +1320,7 @@ describe('Calling Methods Test', () => {
             case 'onChange':
               return
             case 'defaultGet': {
-              expect(Object.keys(result.result).length).toBe(resp)
+              expect(Object.keys(result.result).length).toBe(9)
               done()
               return
             }
@@ -1152,56 +1334,60 @@ describe('Calling Methods Test', () => {
 
   it('can not default get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, deleting a record returns a boolean.
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createDefaultGet('purchase.order', [
-        'state',
-        'picking_count',
-        'picking_ids',
-        'invoice_count',
-        'invoice_ids',
-        'name',
-        'partner_id',
-        'partner_ref',
-        'currency_id',
-        'is_shipped',
-        'date_order',
-        'origin',
-        'company_id',
-        'order_line',
-        'amount_untaxed',
-        'amount_tax',
-        'amount_total',
-        'notes',
-        'date_planned',
-        'picking_type_id',
-        'dest_address_id',
-        'default_location_dest_id_usage',
-        'incoterm_id',
-        'invoice_status',
-        'payment_term_id',
-        'fiscal_position_id',
-        'date_approve',
-        'message_follower_ids',
-        'activity_ids',
-        'message_ids'
-      ]),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createDefaultGet('purchase.order', [
+            'state',
+            'picking_count',
+            'picking_ids',
+            'invoice_count',
+            'invoice_ids',
+            'name',
+            'partner_id',
+            'partner_ref',
+            'currency_id',
+            'is_shipped',
+            'date_order',
+            'origin',
+            'company_id',
+            'order_line',
+            'amount_untaxed',
+            'amount_tax',
+            'amount_total',
+            'notes',
+            'date_planned',
+            'picking_type_id',
+            'dest_address_id',
+            'default_location_dest_id_usage',
+            'incoterm_id',
+            'invoice_status',
+            'payment_term_id',
+            'fiscal_position_id',
+            'date_approve',
+            'message_follower_ids',
+            'activity_ids',
+            'message_ids'
+          ]),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -1236,22 +1422,29 @@ describe('Calling Methods Test', () => {
 
   it('can fields get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    const resp = fieldsGetResult
 
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
       authenticationData,
       1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createFieldsGet('purchase.order', []),
+          callback
+        )
+      }
     )
-
-    // Fields get a state field in purchase order model returns 6 available selections
-    const resp = 6
-
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    // authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createFieldsGet('purchase.order', []), callback)
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1275,7 +1468,7 @@ describe('Calling Methods Test', () => {
             case 'onChange':
               return
             case 'fieldsGet': {
-              expect(result.result['state']['selection'].length).toBe(resp)
+              expect(result.result).toEqual(resp)
               done()
               return
             }
@@ -1289,25 +1482,29 @@ describe('Calling Methods Test', () => {
 
   it('can not fields get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // In odoo, deleting a record returns a boolean.
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createFieldsGet('purchase.order', ['state']),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createFieldsGet('purchase.order', ['state']),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -1344,22 +1541,30 @@ describe('Calling Methods Test', () => {
 
   it('can name get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // Name get a purchase order model returns array of one array of the id and the name of the record
     const resp = [[1, 'PO00001']]
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', [1]), callback)
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createNameGet('purchase.order', [1]),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1396,22 +1601,30 @@ describe('Calling Methods Test', () => {
 
   it('can not name get a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // Name get a purchase order model returns array of one array of the id and the name of the record
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(authenticatedClient, createNameGet('purchase.order', [1]), callback)
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createNameGet('purchase.order', [1]),
+          callback
+        )
+      }
+    )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
       result.fold(
@@ -1448,13 +1661,6 @@ describe('Calling Methods Test', () => {
 
   it('can onchange a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // The first onchange when opening the purchase order form returns the following object
     const resp = {
       value: {
@@ -1463,132 +1669,143 @@ describe('Calling Methods Test', () => {
       }
     }
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createOnChange(
-        'purchase.order',
-        {
-          state: 'draft',
-          picking_count: 0,
-          invoice_count: 0,
-          name: 'New',
-          currency_id: 3,
-          date_order: '2018-12-19 04:51:04',
-          company_id: 1,
-          picking_type_id: 4,
-          invoice_status: 'no',
-          picking_ids: [[6, false, []]],
-          invoice_ids: [[6, false, []]],
-          partner_id: false,
-          partner_ref: false,
-          is_shipped: false,
-          origin: false,
-          order_line: [],
-          amount_untaxed: 0,
-          amount_tax: 0,
-          amount_total: 0,
-          notes: false,
-          date_planned: false,
-          dest_address_id: false,
-          default_location_dest_id_usage: false,
-          incoterm_id: false,
-          payment_term_id: false,
-          fiscal_position_id: false,
-          date_approve: false,
-          message_follower_ids: [],
-          activity_ids: [],
-          message_ids: []
-        },
-        [
-          'state',
-          'picking_count',
-          'picking_ids',
-          'invoice_count',
-          'invoice_ids',
-          'name',
-          'partner_id',
-          'partner_ref',
-          'currency_id',
-          'is_shipped',
-          'date_order',
-          'origin',
-          'company_id',
-          'order_line',
-          'amount_untaxed',
-          'amount_tax',
-          'amount_total',
-          'notes',
-          'date_planned',
-          'picking_type_id',
-          'dest_address_id',
-          'default_location_dest_id_usage',
-          'incoterm_id',
-          'invoice_status',
-          'payment_term_id',
-          'fiscal_position_id',
-          'date_approve',
-          'message_follower_ids',
-          'activity_ids',
-          'message_ids'
-        ],
-        {
-          state: '1',
-          picking_count: '',
-          picking_ids: '1',
-          invoice_count: '',
-          invoice_ids: '',
-          name: '',
-          partner_id: '1',
-          partner_ref: '',
-          currency_id: '1',
-          is_shipped: '',
-          date_order: '',
-          origin: '',
-          company_id: '1',
-          order_line: '1',
-          'order_line.currency_id': '',
-          'order_line.state': '',
-          'order_line.sequence': '',
-          'order_line.product_id': '1',
-          'order_line.name': '',
-          'order_line.move_dest_ids': '',
-          'order_line.date_planned': '1',
-          'order_line.company_id': '',
-          'order_line.account_analytic_id': '',
-          'order_line.analytic_tag_ids': '',
-          'order_line.product_qty': '1',
-          'order_line.qty_received': '1',
-          'order_line.qty_invoiced': '1',
-          'order_line.product_uom': '1',
-          'order_line.price_unit': '1',
-          'order_line.taxes_id': '1',
-          'order_line.price_subtotal': '',
-          'order_line.invoice_lines': '1',
-          'order_line.move_ids': '1',
-          amount_untaxed: '',
-          amount_tax: '',
-          amount_total: '',
-          notes: '',
-          date_planned: '',
-          picking_type_id: '1',
-          dest_address_id: '',
-          default_location_dest_id_usage: '',
-          incoterm_id: '',
-          invoice_status: '',
-          payment_term_id: '',
-          fiscal_position_id: '1',
-          date_approve: '',
-          message_follower_ids: '',
-          activity_ids: '',
-          message_ids: ''
-        }
-      ),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createOnChange(
+            'purchase.order',
+            {
+              state: 'draft',
+              picking_count: 0,
+              invoice_count: 0,
+              name: 'New',
+              currency_id: 3,
+              date_order: '2018-12-19 04:51:04',
+              company_id: 1,
+              picking_type_id: 4,
+              invoice_status: 'no',
+              picking_ids: [[6, false, []]],
+              invoice_ids: [[6, false, []]],
+              partner_id: false,
+              partner_ref: false,
+              is_shipped: false,
+              origin: false,
+              order_line: [],
+              amount_untaxed: 0,
+              amount_tax: 0,
+              amount_total: 0,
+              notes: false,
+              date_planned: false,
+              dest_address_id: false,
+              default_location_dest_id_usage: false,
+              incoterm_id: false,
+              payment_term_id: false,
+              fiscal_position_id: false,
+              date_approve: false,
+              message_follower_ids: [],
+              activity_ids: [],
+              message_ids: []
+            },
+            [
+              'state',
+              'picking_count',
+              'picking_ids',
+              'invoice_count',
+              'invoice_ids',
+              'name',
+              'partner_id',
+              'partner_ref',
+              'currency_id',
+              'is_shipped',
+              'date_order',
+              'origin',
+              'company_id',
+              'order_line',
+              'amount_untaxed',
+              'amount_tax',
+              'amount_total',
+              'notes',
+              'date_planned',
+              'picking_type_id',
+              'dest_address_id',
+              'default_location_dest_id_usage',
+              'incoterm_id',
+              'invoice_status',
+              'payment_term_id',
+              'fiscal_position_id',
+              'date_approve',
+              'message_follower_ids',
+              'activity_ids',
+              'message_ids'
+            ],
+            {
+              state: '1',
+              picking_count: '',
+              picking_ids: '1',
+              invoice_count: '',
+              invoice_ids: '',
+              name: '',
+              partner_id: '1',
+              partner_ref: '',
+              currency_id: '1',
+              is_shipped: '',
+              date_order: '',
+              origin: '',
+              company_id: '1',
+              order_line: '1',
+              'order_line.currency_id': '',
+              'order_line.state': '',
+              'order_line.sequence': '',
+              'order_line.product_id': '1',
+              'order_line.name': '',
+              'order_line.move_dest_ids': '',
+              'order_line.date_planned': '1',
+              'order_line.company_id': '',
+              'order_line.account_analytic_id': '',
+              'order_line.analytic_tag_ids': '',
+              'order_line.product_qty': '1',
+              'order_line.qty_received': '1',
+              'order_line.qty_invoiced': '1',
+              'order_line.product_uom': '1',
+              'order_line.price_unit': '1',
+              'order_line.taxes_id': '1',
+              'order_line.price_subtotal': '',
+              'order_line.invoice_lines': '1',
+              'order_line.move_ids': '1',
+              amount_untaxed: '',
+              amount_tax: '',
+              amount_total: '',
+              notes: '',
+              date_planned: '',
+              picking_type_id: '1',
+              dest_address_id: '',
+              default_location_dest_id_usage: '',
+              incoterm_id: '',
+              invoice_status: '',
+              payment_term_id: '',
+              fiscal_position_id: '1',
+              date_approve: '',
+              message_follower_ids: '',
+              activity_ids: '',
+              message_ids: ''
+            }
+          ),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
@@ -1627,142 +1844,146 @@ describe('Calling Methods Test', () => {
 
   it('can not onchange a model', done => {
     const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    const authenticatedClient = createAuthenticatedClient(
-      createClientOptions('13.229.83.42', 8069),
-      authenticationData,
-      1
-    )
-
     // The first onchange when opening the purchase order form returns the following object
     const resp = 'An Error'
 
-    const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(resp, null)
-    })
-    authenticatedClient.client.methodCall = methodCallFn
-
-    executeAuthenticatedClient(
-      authenticatedClient,
-      createOnChange(
-        'purchase.order',
-        {
-          state: 'draft',
-          picking_count: 0,
-          invoice_count: 0,
-          name: 'New',
-          currency_id: 3,
-          date_order: '2018-12-19 04:51:04',
-          company_id: 1,
-          picking_type_id: 4,
-          invoice_status: 'no',
-          picking_ids: [[6, false, []]],
-          invoice_ids: [[6, false, []]],
-          partner_id: false,
-          partner_ref: false,
-          is_shipped: false,
-          origin: false,
-          order_line: [],
-          amount_untaxed: 0,
-          amount_tax: 0,
-          amount_total: 0,
-          notes: false,
-          date_planned: false,
-          dest_address_id: false,
-          default_location_dest_id_usage: false,
-          incoterm_id: false,
-          payment_term_id: false,
-          fiscal_position_id: false,
-          date_approve: false,
-          message_follower_ids: [],
-          activity_ids: [],
-          message_ids: []
-        },
-        [
-          'state',
-          'picking_count',
-          'picking_ids',
-          'invoice_count',
-          'invoice_ids',
-          'name',
-          'partner_id',
-          'partner_ref',
-          'currency_id',
-          'is_shipped',
-          'date_order',
-          'origin',
-          'company_id',
-          'order_line',
-          'amount_untaxed',
-          'amount_tax',
-          'amount_total',
-          'notes',
-          'date_planned',
-          'picking_type_id',
-          'dest_address_id',
-          'default_location_dest_id_usage',
-          'incoterm_id',
-          'invoice_status',
-          'payment_term_id',
-          'fiscal_position_id',
-          'date_approve',
-          'message_follower_ids',
-          'activity_ids',
-          'message_ids'
-        ],
-        {
-          state: '1',
-          picking_count: '',
-          picking_ids: '1',
-          invoice_count: '',
-          invoice_ids: '',
-          name: '',
-          partner_id: '1',
-          partner_ref: '',
-          currency_id: '1',
-          is_shipped: '',
-          date_order: '',
-          origin: '',
-          company_id: '1',
-          order_line: '1',
-          'order_line.currency_id': '',
-          'order_line.state': '',
-          'order_line.sequence': '',
-          'order_line.product_id': '1',
-          'order_line.name': '',
-          'order_line.move_dest_ids': '',
-          'order_line.date_planned': '1',
-          'order_line.company_id': '',
-          'order_line.account_analytic_id': '',
-          'order_line.analytic_tag_ids': '',
-          'order_line.product_qty': '1',
-          'order_line.qty_received': '1',
-          'order_line.qty_invoiced': '1',
-          'order_line.product_uom': '1',
-          'order_line.price_unit': '1',
-          'order_line.taxes_id': '1',
-          'order_line.price_subtotal': '',
-          'order_line.invoice_lines': '1',
-          'order_line.move_ids': '1',
-          amount_untaxed: '',
-          amount_tax: '',
-          amount_total: '',
-          notes: '',
-          date_planned: '',
-          picking_type_id: '1',
-          dest_address_id: '',
-          default_location_dest_id_usage: '',
-          incoterm_id: '',
-          invoice_status: '',
-          payment_term_id: '',
-          fiscal_position_id: '1',
-          date_approve: '',
-          message_follower_ids: '',
-          activity_ids: '',
-          message_ids: ''
-        }
-      ),
-      callback
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createOnChange(
+            'purchase.order',
+            {
+              state: 'draft',
+              picking_count: 0,
+              invoice_count: 0,
+              name: 'New',
+              currency_id: 3,
+              date_order: '2018-12-19 04:51:04',
+              company_id: 1,
+              picking_type_id: 4,
+              invoice_status: 'no',
+              picking_ids: [[6, false, []]],
+              invoice_ids: [[6, false, []]],
+              partner_id: false,
+              partner_ref: false,
+              is_shipped: false,
+              origin: false,
+              order_line: [],
+              amount_untaxed: 0,
+              amount_tax: 0,
+              amount_total: 0,
+              notes: false,
+              date_planned: false,
+              dest_address_id: false,
+              default_location_dest_id_usage: false,
+              incoterm_id: false,
+              payment_term_id: false,
+              fiscal_position_id: false,
+              date_approve: false,
+              message_follower_ids: [],
+              activity_ids: [],
+              message_ids: []
+            },
+            [
+              'state',
+              'picking_count',
+              'picking_ids',
+              'invoice_count',
+              'invoice_ids',
+              'name',
+              'partner_id',
+              'partner_ref',
+              'currency_id',
+              'is_shipped',
+              'date_order',
+              'origin',
+              'company_id',
+              'order_line',
+              'amount_untaxed',
+              'amount_tax',
+              'amount_total',
+              'notes',
+              'date_planned',
+              'picking_type_id',
+              'dest_address_id',
+              'default_location_dest_id_usage',
+              'incoterm_id',
+              'invoice_status',
+              'payment_term_id',
+              'fiscal_position_id',
+              'date_approve',
+              'message_follower_ids',
+              'activity_ids',
+              'message_ids'
+            ],
+            {
+              state: '1',
+              picking_count: '',
+              picking_ids: '1',
+              invoice_count: '',
+              invoice_ids: '',
+              name: '',
+              partner_id: '1',
+              partner_ref: '',
+              currency_id: '1',
+              is_shipped: '',
+              date_order: '',
+              origin: '',
+              company_id: '1',
+              order_line: '1',
+              'order_line.currency_id': '',
+              'order_line.state': '',
+              'order_line.sequence': '',
+              'order_line.product_id': '1',
+              'order_line.name': '',
+              'order_line.move_dest_ids': '',
+              'order_line.date_planned': '1',
+              'order_line.company_id': '',
+              'order_line.account_analytic_id': '',
+              'order_line.analytic_tag_ids': '',
+              'order_line.product_qty': '1',
+              'order_line.qty_received': '1',
+              'order_line.qty_invoiced': '1',
+              'order_line.product_uom': '1',
+              'order_line.price_unit': '1',
+              'order_line.taxes_id': '1',
+              'order_line.price_subtotal': '',
+              'order_line.invoice_lines': '1',
+              'order_line.move_ids': '1',
+              amount_untaxed: '',
+              amount_tax: '',
+              amount_total: '',
+              notes: '',
+              date_planned: '',
+              picking_type_id: '1',
+              dest_address_id: '',
+              default_location_dest_id_usage: '',
+              incoterm_id: '',
+              invoice_status: '',
+              payment_term_id: '',
+              fiscal_position_id: '1',
+              date_approve: '',
+              message_follower_ids: '',
+              activity_ids: '',
+              message_ids: ''
+            }
+          ),
+          callback
+        )
+      }
     )
 
     function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {

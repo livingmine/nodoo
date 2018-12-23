@@ -26,10 +26,20 @@ export interface XMLRPCClientError {
   body: any
 }
 
-interface ClientOptions {
+interface BaseClientOptions {
   host: string
+}
+
+interface InsecureClientOptions extends BaseClientOptions {
+  kind: 'insecure'
   port: number
 }
+
+interface SecureClientOptions extends BaseClientOptions {
+  kind: 'secure'
+}
+
+type ClientOptions = SecureClientOptions | InsecureClientOptions
 
 interface AuthenticationData {
   db: string
@@ -44,12 +54,21 @@ interface AuthenticatedData {
   password: string
 }
 
-export const createClientOptions = (host: string, port: number): ClientOptions => {
-  const clientOptions: ClientOptions = {
+export const createSecureClientOptions = (host: string): SecureClientOptions => {
+  const secureClientOptions: SecureClientOptions = {
+    kind: 'secure',
+    host
+  }
+  return secureClientOptions
+}
+
+export const createInsecureClientOptions = (host: string, port: number): InsecureClientOptions => {
+  const insecureClientOptions: InsecureClientOptions = {
+    kind: 'insecure',
     host,
     port
   }
-  return clientOptions
+  return insecureClientOptions
 }
 
 export const createAuthenticationData = (
@@ -82,15 +101,41 @@ const createAuthenticatedData = (
 
 export const createUnauthenticatedClient = (
   clientOptions: ClientOptions
-): UnauthenticatedClient => {
-  const client: XMLRPCClient = xmlrpc.createClient({
-    ...clientOptions,
-    path: '/xmlrpc/2/common'
-  })
+): Either<string, UnauthenticatedClient> => {
+  /* istanbul ignore next */
+  switch (clientOptions.kind) {
+    case 'insecure': {
+      const client: XMLRPCClient = xmlrpc.createClient({
+        host: clientOptions.host,
+        port: clientOptions.port,
+        path: '/xmlrpc/2/common'
+      })
 
-  return {
-    kind: 'unauthenticated',
-    client
+      const unauthenticatedClient: UnauthenticatedClient = {
+        kind: 'unauthenticated',
+        client
+      }
+
+      return right(unauthenticatedClient)
+    }
+    case 'secure': {
+      const client: XMLRPCClient = xmlrpc.createSecureClient({
+        host: clientOptions.host,
+        path: '/xmlrpc/2/common'
+      })
+
+      const unauthenticatedClient: UnauthenticatedClient = {
+        kind: 'unauthenticated',
+        client
+      }
+
+      return right(unauthenticatedClient)
+    }
+    default:
+      /* istanbul ignore next */
+      const exhaustiveCheck: never = clientOptions
+      /* istanbul ignore next */
+      return left('Fail to create unauthenticated client.')
   }
 }
 
@@ -98,18 +143,47 @@ export const createAuthenticatedClient = (
   clientOptions: ClientOptions,
   authenticationData: AuthenticationData,
   uid: number
-): AuthenticatedClient => {
-  const client: XMLRPCClient = xmlrpc.createClient({
-    ...clientOptions,
-    path: '/xmlrpc/2/object'
-  })
+): Either<string, AuthenticatedClient> => {
+  /* istanbul ignore next */
+  switch (clientOptions.kind) {
+    case 'insecure': {
+      const client: XMLRPCClient = xmlrpc.createClient({
+        host: clientOptions.host,
+        port: clientOptions.port,
+        path: '/xmlrpc/2/object'
+      })
 
-  const authenticatedData: AuthenticatedData = createAuthenticatedData(authenticationData, uid)
+      const authenticatedData: AuthenticatedData = createAuthenticatedData(authenticationData, uid)
 
-  return {
-    kind: 'authenticated',
-    authenticatedData,
-    client
+      const authenticatedClient: AuthenticatedClient = {
+        kind: 'authenticated',
+        authenticatedData,
+        client
+      }
+
+      return right(authenticatedClient)
+    }
+    case 'secure': {
+      const client: XMLRPCClient = xmlrpc.createSecureClient({
+        host: clientOptions.host,
+        path: '/xmlrpc/2/object'
+      })
+
+      const authenticatedData: AuthenticatedData = createAuthenticatedData(authenticationData, uid)
+
+      const authenticatedClient: AuthenticatedClient = {
+        kind: 'authenticated',
+        authenticatedData,
+        client
+      }
+
+      return right(authenticatedClient)
+    }
+    default:
+      /* istanbul ignore next */
+      const exhaustiveCheck: never = clientOptions
+      /* istanbul ignore next */
+      return left('Fail to create authenticated client.')
   }
 }
 
@@ -505,6 +579,7 @@ export const executeAuthenticatedClient = (
     }
 
     default:
+      /* istanbul ignore next */
       const exhaustiveCheck: never = operation
   }
 }
@@ -541,6 +616,7 @@ export const executeUnauthenticatedClient = (
     }
 
     default:
+      /* istanbul ignore next */
       const exhaustiveCheck: never = operation
   }
 }
