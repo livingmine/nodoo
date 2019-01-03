@@ -276,6 +276,14 @@ interface OnChange {
   fieldOnChange: any
 }
 
+interface CallMethod {
+  kind: 'callMethod'
+  modelName: string
+  methodName: string
+  args: Array<any>
+  kwargs?: any
+}
+
 interface BaseResult {
   result: any
 }
@@ -336,6 +344,10 @@ interface OnChangeResult extends BaseResult {
   kind: 'onChange'
 }
 
+interface CallMethodResult extends BaseResult {
+  kind: 'callMethod'
+}
+
 export type UnauthenticatedOperationResult = AuthenticateResult | FetchCommonInformationResult
 
 export type AuthenticatedOperationResult =
@@ -351,6 +363,7 @@ export type AuthenticatedOperationResult =
   | FieldsGetResult
   | NameGetResult
   | OnChangeResult
+  | CallMethodResult
 
 type UnauthenticatedOperation = Authenticate | FetchCommonInformation
 type AuthenticatedOperation =
@@ -366,6 +379,7 @@ type AuthenticatedOperation =
   | FieldsGet
   | NameGet
   | OnChange
+  | CallMethod
 
 export const executeAuthenticatedClient = (
   client: AuthenticatedClient,
@@ -572,6 +586,25 @@ export const executeAuthenticatedClient = (
             callback(left(error))
           } else {
             callback(right(createOnChangeResult(value)))
+          }
+        }
+      )
+      return
+    }
+    case 'callMethod': {
+      client.client.methodCall(
+        'execute_kw',
+        Object.values(client.authenticatedData).concat(
+          operation.modelName,
+          operation.methodName,
+          operation.args,
+          operation.kwargs
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(error))
+          } else {
+            callback(right(createCallMethodResult(value)))
           }
         }
       )
@@ -793,6 +826,23 @@ export const createOnChange = (
   return onChange
 }
 
+export const createCallMethod = (
+  modelName: string,
+  methodName: string,
+  args: Array<any>,
+  kwargs?: any
+): CallMethod => {
+  const callMethod: CallMethod = {
+    kind: 'callMethod',
+    modelName: modelName,
+    methodName: methodName,
+    args: args,
+    kwargs: kwargs
+  }
+
+  return callMethod
+}
+
 const createAuthenticateResult = (uid: number): AuthenticateResult => ({
   kind: 'authenticate',
   uid
@@ -860,5 +910,10 @@ const createNameGetResult = (result: any): NameGetResult => ({
 
 const createOnChangeResult = (result: any): OnChangeResult => ({
   kind: 'onChange',
+  result: result
+})
+
+const createCallMethodResult = (result: any): CallMethodResult => ({
+  kind: 'callMethod',
   result: result
 })

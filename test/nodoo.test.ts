@@ -22,7 +22,8 @@ import {
   createFieldsGet,
   createNameGet,
   createOnChange,
-  createInsecureClientOptions
+  createInsecureClientOptions,
+  createCallMethod
 } from '../src/nodoo'
 import { fieldsGetResult } from './methodsResult'
 
@@ -323,6 +324,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -379,6 +381,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -432,6 +435,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'searchCount': {
               expect(result.result).toEqual(resp)
@@ -493,6 +497,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -551,6 +556,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'read': {
               expect(result.result).toBe(resp)
@@ -612,6 +618,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -674,6 +681,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'searchRead': {
               expect(result.result).toBe(resp)
@@ -738,6 +746,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -795,6 +804,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'nameSearch': {
               expect(result.result).toBe(resp)
@@ -860,6 +870,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -921,6 +932,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -980,6 +992,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1036,6 +1049,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'update': {
               expect(result.result).toBe(resp)
@@ -1099,6 +1113,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
             case 'update': {
               return
             }
@@ -1157,6 +1172,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'delete': {
               expect(result.result).toBe(resp)
@@ -1221,6 +1237,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1318,6 +1335,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'defaultGet': {
               expect(Object.keys(result.result).length).toBe(9)
@@ -1411,6 +1429,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1466,6 +1485,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             case 'fieldsGet': {
               expect(result.result).toEqual(resp)
@@ -1530,6 +1550,7 @@ describe('Calling Methods Test', () => {
             case 'fieldsGet':
             case 'nameGet':
             case 'onChange':
+            case 'callMethod':
               return
             default:
               const exhaustiveCheck: never = result
@@ -1586,6 +1607,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'onChange':
+            case 'callMethod':
             case 'nameGet': {
               expect(result.result).toBe(resp)
               done()
@@ -1646,6 +1668,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'onChange':
+            case 'callMethod':
             case 'nameGet': {
               expect(result.result).toBe(resp)
               done()
@@ -1828,6 +1851,7 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'callMethod':
               return
             case 'onChange': {
               expect(result.result).toEqual(resp)
@@ -2006,9 +2030,132 @@ describe('Calling Methods Test', () => {
             case 'defaultGet':
             case 'fieldsGet':
             case 'nameGet':
+            case 'callMethod':
               return
             case 'onChange': {
               expect(result.result).toEqual(resp)
+              done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can call a method of the model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    // Call the copy method of a purchase order model returns the id of the record
+    const resp = 82
+
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(null, resp)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createCallMethod('purchase.order', 'copy', [[62]]),
+          callback
+        )
+      }
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'onChange':
+            case 'callMethod':
+            case 'nameGet': {
+              expect(result.result).toBe(resp)
+              done()
+              return
+            }
+            default:
+              const exhaustiveCheck: never = result
+          }
+        }
+      )
+    }
+  })
+
+  it('can not call a method of the model', done => {
+    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    // Call the copy method of a purchase order model returns the id of the record
+    const resp = 'An error'
+
+    createAuthenticatedClient(
+      createSecureClientOptions('odoo.topbrand.rubyh.co'),
+      authenticationData,
+      1
+    ).fold(
+      error => {
+        expect(error).toBe('Fail to create authenticated client.')
+        done()
+      },
+      authenticatedClient => {
+        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+          callback(resp, null)
+        })
+        authenticatedClient.client.methodCall = methodCallFn
+        executeAuthenticatedClient(
+          authenticatedClient,
+          createCallMethod('purchase.order', 'copy', [[62]]),
+          callback
+        )
+      }
+    )
+
+    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+      result.fold(
+        (error: XMLRPCClientError) => {
+          expect(error).toBe(resp)
+          done()
+          return
+        },
+        (result: AuthenticatedOperationResult) => {
+          switch (result.kind) {
+            case 'create':
+            case 'read':
+            case 'search':
+            case 'searchCount':
+            case 'searchRead':
+            case 'update':
+            case 'nameSearch':
+            case 'delete':
+            case 'defaultGet':
+            case 'fieldsGet':
+            case 'onChange':
+            case 'callMethod':
+            case 'nameGet': {
+              expect(result.result).toBe(resp)
               done()
               return
             }
