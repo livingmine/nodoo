@@ -3,6 +3,9 @@ const xmlrpc = require('xmlrpc')
 
 import 'core-js/fn/object/values'
 
+// Start of client
+type Client = SecureClient | InsecureClient
+
 interface XMLRPCClient {
   methodCall: any
 }
@@ -11,20 +14,15 @@ interface BaseClient {
   client: XMLRPCClient
 }
 
-interface UnauthenticatedClient extends BaseClient {
-  kind: 'unauthenticated'
+interface SecureClient extends BaseClient {
+  kind: 'secure'
 }
 
-interface AuthenticatedClient extends BaseClient {
-  kind: 'authenticated'
-  authenticatedData: AuthenticatedData
+interface InsecureClient extends BaseClient {
+  kind: 'insecure'
 }
 
-export interface XMLRPCClientError {
-  req: any
-  res: any
-  body: any
-}
+type ClientOptions = SecureClientOptions | InsecureClientOptions
 
 interface BaseClientOptions {
   host: string
@@ -39,236 +37,905 @@ interface SecureClientOptions extends BaseClientOptions {
   kind: 'secure'
 }
 
-type ClientOptions = SecureClientOptions | InsecureClientOptions
+type SecureClientOptionsParams = {
+  host: string
+}
 
-interface AuthenticationData {
+type InsecureClientOptionsParams = {
+  host: string
+  port: number
+}
+
+export const createSecureClientOptions = (
+  clientOptionsParams: SecureClientOptionsParams
+): SecureClientOptions => {
+  const secureClientOptions: SecureClientOptions = {
+    kind: 'secure',
+    ...clientOptionsParams
+  }
+  return secureClientOptions
+}
+
+export const createInsecureClientOptions = (
+  clientOptionsParams: InsecureClientOptionsParams
+): InsecureClientOptions => {
+  const insecureClientOptions: InsecureClientOptions = {
+    kind: 'insecure',
+    ...clientOptionsParams
+  }
+  return insecureClientOptions
+}
+
+type CreateClientParams = {
+  clientOptions: ClientOptions
+  operation: ServiceOperation
+}
+
+export const createSecureClient = ({
+  clientOptions,
+  operation
+}: CreateClientParams): SecureClient => {
+  switch (operation.serviceType) {
+    case 'common': {
+      const client: XMLRPCClient = xmlrpc.createSecureClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/common'
+      })
+
+      const secureClient: SecureClient = {
+        kind: 'secure',
+        client
+      }
+
+      return secureClient
+    }
+    case 'db': {
+      const client: XMLRPCClient = xmlrpc.createSecureClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/db'
+      })
+
+      const secureClient: SecureClient = {
+        kind: 'secure',
+        client
+      }
+
+      return secureClient
+    }
+    case 'model': {
+      const client: XMLRPCClient = xmlrpc.createSecureClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/object'
+      })
+
+      const secureClient: SecureClient = {
+        kind: 'secure',
+        client
+      }
+
+      return secureClient
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = operation
+      const neverClient: SecureClient = {} as SecureClient
+      return neverClient
+  }
+}
+
+/* istanbul ignore next */
+export const createInsecureClient = ({
+  clientOptions,
+  operation
+}: CreateClientParams): InsecureClient => {
+  switch (operation.serviceType) {
+    case 'common': {
+      const client: XMLRPCClient = xmlrpc.createClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/common'
+      })
+
+      const insecureClient: InsecureClient = {
+        kind: 'insecure',
+        client
+      }
+
+      return insecureClient
+    }
+    case 'db': {
+      const client: XMLRPCClient = xmlrpc.createClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/common'
+      })
+
+      const insecureClient: InsecureClient = {
+        kind: 'insecure',
+        client
+      }
+
+      return insecureClient
+    }
+    case 'model': {
+      const client: XMLRPCClient = xmlrpc.createClient({
+        ...clientOptions,
+        path: '/xmlrpc/2/common'
+      })
+
+      const insecureClient: InsecureClient = {
+        kind: 'insecure',
+        client
+      }
+
+      return insecureClient
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = operation
+      const neverClient: InsecureClient = {} as InsecureClient
+      return neverClient
+  }
+}
+
+/* istanbul ignore next */
+const createClient = ({ clientOptions, operation }: CreateClientParams): Client => {
+  switch (clientOptions.kind) {
+    case 'insecure': {
+      return createInsecureClient({
+        clientOptions,
+        operation
+      })
+    }
+    case 'secure': {
+      return createSecureClient({
+        clientOptions,
+        operation
+      })
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = clientOptions
+      const neverClient: Client = {} as Client
+      return neverClient
+  }
+}
+
+// End of client
+
+// Start of Service error
+type RPC_FAULT_CODE_CLIENT_ERROR = 1 // indistinguishable from app. error.
+type RPC_FAULT_CODE_APPLICATION_ERROR = 1
+type RPC_FAULT_CODE_WARNING = 2
+type RPC_FAULT_CODE_ACCESS_DENIED = 3
+type RPC_FAULT_CODE_ACCESS_ERROR = 4
+
+const RPC_FAULT_CODE_CLIENT_ERROR: RPC_FAULT_CODE_CLIENT_ERROR = 1
+const RPC_FAULT_CODE_APPLICATION_ERROR: RPC_FAULT_CODE_APPLICATION_ERROR = 1
+const RPC_FAULT_CODE_WARNING: RPC_FAULT_CODE_WARNING = 2
+const RPC_FAULT_CODE_ACCESS_DENIED: RPC_FAULT_CODE_ACCESS_DENIED = 3
+const RPC_FAULT_CODE_ACCESS_ERROR: RPC_FAULT_CODE_ACCESS_ERROR = 4
+
+export interface XMLRPCClientError {
+  body: any
+  faultCode:
+    | RPC_FAULT_CODE_CLIENT_ERROR
+    | RPC_FAULT_CODE_APPLICATION_ERROR
+    | RPC_FAULT_CODE_WARNING
+    | RPC_FAULT_CODE_ACCESS_DENIED
+    | RPC_FAULT_CODE_ACCESS_ERROR
+  faultString: string
+  req: any
+  res: any
+}
+
+interface BaseServiceError {
+  message: string
+}
+
+interface ApplicationError extends BaseServiceError {
+  kind: 'application'
+}
+
+interface Warning extends BaseServiceError {
+  kind: 'warning'
+}
+
+interface AccessDenied extends BaseServiceError {
+  kind: 'accessDenied'
+}
+
+interface AccessError extends BaseServiceError {
+  kind: 'accessError'
+}
+
+interface UnknownError extends BaseServiceError {
+  kind: 'unknownError'
+}
+
+export type ServiceOperationError =
+  | ApplicationError
+  | Warning
+  | AccessDenied
+  | AccessError
+  | UnknownError // Odoo is not going to emit this error but just in case.
+
+type CreateServiceOperationErrorParams = {
+  error: XMLRPCClientError
+}
+
+export const createServiceOperationError = ({
+  error
+}: CreateServiceOperationErrorParams): ServiceOperationError => {
+  switch (error.faultCode) {
+    case RPC_FAULT_CODE_APPLICATION_ERROR:
+      return {
+        kind: 'application',
+        message: error.faultString
+      }
+    case RPC_FAULT_CODE_WARNING:
+      return {
+        kind: 'warning',
+        message: error.faultString
+      }
+    case RPC_FAULT_CODE_ACCESS_DENIED:
+      return {
+        kind: 'accessDenied',
+        message: error.faultString
+      }
+    case RPC_FAULT_CODE_ACCESS_ERROR:
+      return {
+        kind: 'accessError',
+        message: error.faultString
+      }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = error.faultCode
+      return {
+        kind: 'unknownError',
+        message:
+          'An unknown error occured! Odoo might have introduced a new kind of error, please kindly check there.'
+      }
+  }
+}
+
+// End of service error
+
+// Start of service
+
+type Service = CommonService | DBService | ModelService
+
+interface BaseService {
+  client: Client
+}
+
+interface CommonService extends BaseService {
+  kind: CommonServiceOperation['serviceType']
+  operation: CommonServiceOperation
+}
+
+interface DBService extends BaseService {
+  kind: DBServiceOperation['serviceType']
+  operation: DBServiceOperation
+}
+
+interface ModelService extends BaseService {
+  kind: ModelServiceOperation['serviceType']
+  credentials: ModelServiceCredentials
+  operation: ModelServiceOperation
+}
+
+type CreateModelServiceParams = {
+  credentials: ModelServiceCredentials
+  operation: ModelServiceOperation
+  clientOptions: ClientOptions
+  mockMethodCall?: (
+    firstArg: any,
+    secondArg: any,
+    callback: (err: string, result: any) => void
+  ) => {}
+}
+
+export const createModelService = ({
+  credentials,
+  operation,
+  clientOptions,
+  mockMethodCall
+}: CreateModelServiceParams): ModelService => {
+  const client = createClient({ clientOptions, operation })
+
+  /* istanbul ignore next */
+  if (mockMethodCall) {
+    client.client.methodCall = mockMethodCall
+  }
+
+  return {
+    kind: 'model',
+    credentials,
+    client,
+    operation
+  }
+}
+
+type CreateCommonServiceParams = {
+  operation: CommonServiceOperation
+  clientOptions: ClientOptions
+  mockMethodCall?: (
+    firstArg: any,
+    secondArg: any,
+    callback: (err: string, result: any) => void
+  ) => {}
+}
+
+export const createCommonService = ({
+  operation,
+  clientOptions,
+  mockMethodCall
+}: CreateCommonServiceParams): CommonService => {
+  const client = createClient({ clientOptions, operation })
+
+  /* istanbul ignore next */
+  if (mockMethodCall) {
+    client.client.methodCall = mockMethodCall
+  }
+
+  return {
+    kind: 'common',
+    client,
+    operation
+  }
+}
+
+type CreateDBServiceParams = {
+  operation: DBServiceOperation
+  clientOptions: ClientOptions
+  mockMethodCall?: (
+    firstArg: any,
+    secondArg: any,
+    callback: (err: string, result: any) => void
+  ) => {}
+}
+
+export const createDBService = ({
+  operation,
+  clientOptions,
+  mockMethodCall
+}: CreateDBServiceParams): DBService => {
+  const client = createClient({ clientOptions, operation })
+
+  /* istanbul ignore next */
+  if (mockMethodCall) {
+    client.client.methodCall = mockMethodCall
+  }
+
+  return {
+    kind: 'db',
+    client,
+    operation
+  }
+}
+
+type ExecuteModelServiceParams = {
+  service: ModelService
+  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
+  callback: any
+}
+
+// Ignore test because this is used only inside the executeService which is tested
+/* istanbul ignore next */
+const executeModelService = ({ service, callback }: ExecuteModelServiceParams): void => {
+  switch (service.operation.kind) {
+    case 'create': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'create', [
+          [service.operation.fieldsValues]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'delete': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'unlink', [
+          service.operation.ids
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'search': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(
+          service.operation.modelName,
+          'search',
+          [[service.operation.domain]],
+          service.operation.optionalParameters
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'searchCount': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'search_count', [
+          [service.operation.domain]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'searchRead': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(
+          service.operation.modelName,
+          'search_read',
+          [[service.operation.domain]],
+          service.operation.optionalParameters
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'nameSearch': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(
+          service.operation.modelName,
+          'name_search',
+          [[service.operation.nameToSearch]],
+          service.operation.optionalParameters
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'read': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(
+          service.operation.modelName,
+          'read',
+          [service.operation.ids],
+          service.operation.fields
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'update': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'write', [
+          [service.operation.ids].concat(service.operation.fieldsValues)
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'defaultGet': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'default_get', [
+          [service.operation.fieldsNames]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'fieldsGet': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'fields_get', [
+          [service.operation.fieldsNames].concat(service.operation.attributes)
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'nameGet': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'name_get', [
+          [service.operation.ids]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'onChange': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(service.operation.modelName, 'onchange', [
+          [
+            [],
+            service.operation.values,
+            service.operation.fieldName,
+            service.operation.fieldOnChange
+          ]
+        ]),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'callMethod': {
+      service.client.client.methodCall(
+        'execute_kw',
+        Object.values(service.credentials).concat(
+          service.operation.modelName,
+          service.operation.methodName,
+          service.operation.args,
+          service.operation.kwargs
+        ),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = service.operation
+  }
+  return
+}
+
+type ExecuteCommonServiceParams = {
+  service: CommonService
+  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
+  callback: any
+}
+
+// Ignore test because this is used only inside the executeService which is tested
+/* istanbul ignore next */
+const executeCommonService = ({ service, callback }: ExecuteCommonServiceParams): void => {
+  switch (service.operation.kind) {
+    case 'authenticate': {
+      service.client.client.methodCall(
+        'authenticate',
+        Object.values(service.operation.credentials),
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'getVersion': {
+      service.client.client.methodCall('version', [], (error: XMLRPCClientError, value: any) => {
+        if (error) {
+          callback(left(createServiceOperationError({ error })))
+        } else {
+          callback(right(value))
+        }
+      })
+      return
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = service.operation
+  }
+  return
+}
+
+type ExecuteDBServiceParams = {
+  service: DBService
+  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
+  callback: any
+}
+
+// Ignore test because this is used only inside the executeService which is tested
+/* istanbul ignore next */
+const executeDBService = ({ service, callback }: ExecuteDBServiceParams): void => {
+  switch (service.operation.kind) {
+    case 'dbExist': {
+      service.client.client.methodCall(
+        'db_exist',
+        [service.operation.dbName],
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    }
+    case 'listDB':
+      service.client.client.methodCall('list', [], (error: XMLRPCClientError, value: any) => {
+        if (error) {
+          callback(left(createServiceOperationError({ error })))
+        } else {
+          callback(right(value))
+        }
+      })
+      return
+    case 'createDB':
+      service.client.client.methodCall(
+        'create_database',
+        [
+          service.operation.adminPassword,
+          service.operation.dbName,
+          service.operation.demo,
+          service.operation.lang,
+          service.operation.userPassword,
+          service.operation.login,
+          service.operation.countryCode
+        ],
+        (error: XMLRPCClientError, value: any) => {
+          if (error) {
+            callback(left(createServiceOperationError({ error })))
+          } else {
+            callback(right(value))
+          }
+        }
+      )
+      return
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = service.operation
+  }
+  return
+}
+
+type ExecuteServiceParams = {
+  service: Service
+  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
+  callback: any
+}
+
+export const executeService = ({ service, callback }: ExecuteServiceParams): void => {
+  switch (service.kind) {
+    case 'common': {
+      executeCommonService({ service, callback })
+      return
+    }
+    case 'db': {
+      executeDBService({ service, callback })
+      return
+    }
+    case 'model': {
+      executeModelService({ service, callback })
+      return
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = service
+  }
+}
+
+interface AuthenticateCredentials {
   db: string
   username: string
   password: string
   dummy: {}
 }
 
-interface AuthenticatedData {
+interface ModelServiceCredentials {
   db: string
   uid: number
   password: string
 }
 
-export const createSecureClientOptions = (host: string): SecureClientOptions => {
-  const secureClientOptions: SecureClientOptions = {
-    kind: 'secure',
-    host
-  }
-  return secureClientOptions
-}
+// End of service
 
-export const createInsecureClientOptions = (host: string, port: number): InsecureClientOptions => {
-  const insecureClientOptions: InsecureClientOptions = {
-    kind: 'insecure',
-    host,
-    port
-  }
-  return insecureClientOptions
-}
-
-export const createAuthenticationData = (
-  db: string,
-  username: string,
+type CreateAuthenticateCredentialsParams = {
+  db: string
+  username: string
   password: string
-): AuthenticationData => {
-  const authenticationData: AuthenticationData = {
+}
+
+export const createAuthenticateCredentials = ({
+  db,
+  username,
+  password
+}: CreateAuthenticateCredentialsParams): AuthenticateCredentials => {
+  const authenticateCredentials: AuthenticateCredentials = {
     db,
     username,
     password,
     dummy: {}
   }
 
-  return authenticationData
+  return authenticateCredentials
 }
 
-const createAuthenticatedData = (
-  authenticationData: AuthenticationData,
+type CreateModelServiceCredentialsParams = {
+  db: string
   uid: number
-): AuthenticatedData => {
-  const authenticatedData: AuthenticatedData = {
-    db: authenticationData.db,
+  password: string
+}
+
+export const createModelServiceCredentials = ({
+  db,
+  uid,
+  password
+}: CreateModelServiceCredentialsParams): ModelServiceCredentials => {
+  const modelServiceCredentials: ModelServiceCredentials = {
+    db,
     uid,
-    password: authenticationData.password
+    password
   }
 
-  return authenticatedData
+  return modelServiceCredentials
 }
 
-export const createUnauthenticatedClient = (
-  clientOptions: ClientOptions
-): Either<string, UnauthenticatedClient> => {
-  /* istanbul ignore next */
-  switch (clientOptions.kind) {
-    case 'insecure': {
-      const client: XMLRPCClient = xmlrpc.createClient({
-        host: clientOptions.host,
-        port: clientOptions.port,
-        path: '/xmlrpc/2/common'
-      })
-
-      const unauthenticatedClient: UnauthenticatedClient = {
-        kind: 'unauthenticated',
-        client
-      }
-
-      return right(unauthenticatedClient)
-    }
-    case 'secure': {
-      const client: XMLRPCClient = xmlrpc.createSecureClient({
-        host: clientOptions.host,
-        path: '/xmlrpc/2/common'
-      })
-
-      const unauthenticatedClient: UnauthenticatedClient = {
-        kind: 'unauthenticated',
-        client
-      }
-
-      return right(unauthenticatedClient)
-    }
-    default:
-      /* istanbul ignore next */
-      const exhaustiveCheck: never = clientOptions
-      /* istanbul ignore next */
-      return left('Fail to create unauthenticated client.')
-  }
+interface BaseCommonServiceOperation {
+  serviceType: 'common'
 }
 
-export const createAuthenticatedClient = (
-  clientOptions: ClientOptions,
-  authenticationData: AuthenticationData,
-  uid: number
-): Either<string, AuthenticatedClient> => {
-  /* istanbul ignore next */
-  switch (clientOptions.kind) {
-    case 'insecure': {
-      const client: XMLRPCClient = xmlrpc.createClient({
-        host: clientOptions.host,
-        port: clientOptions.port,
-        path: '/xmlrpc/2/object'
-      })
-
-      const authenticatedData: AuthenticatedData = createAuthenticatedData(authenticationData, uid)
-
-      const authenticatedClient: AuthenticatedClient = {
-        kind: 'authenticated',
-        authenticatedData,
-        client
-      }
-
-      return right(authenticatedClient)
-    }
-    case 'secure': {
-      const client: XMLRPCClient = xmlrpc.createSecureClient({
-        host: clientOptions.host,
-        path: '/xmlrpc/2/object'
-      })
-
-      const authenticatedData: AuthenticatedData = createAuthenticatedData(authenticationData, uid)
-
-      const authenticatedClient: AuthenticatedClient = {
-        kind: 'authenticated',
-        authenticatedData,
-        client
-      }
-
-      return right(authenticatedClient)
-    }
-    default:
-      /* istanbul ignore next */
-      const exhaustiveCheck: never = clientOptions
-      /* istanbul ignore next */
-      return left('Fail to create authenticated client.')
-  }
+interface BaseModelServiceOperation {
+  serviceType: 'model'
 }
 
-interface Authenticate {
+interface BaseDBServiceOperation {
+  serviceType: 'db'
+}
+
+interface Authenticate extends BaseCommonServiceOperation {
   kind: 'authenticate'
-  authenticationData: AuthenticationData
+  credentials: AuthenticateCredentials
 }
 
-interface FetchCommonInformation {
-  kind: 'fetchCommonInformation'
+interface GetVersion extends BaseCommonServiceOperation {
+  kind: 'getVersion'
 }
 
-interface Create {
+interface Create extends BaseModelServiceOperation {
   kind: 'create'
   modelName: string
   fieldsValues: any
 }
 
-interface Delete {
+interface Delete extends BaseModelServiceOperation {
   kind: 'delete'
   ids: Array<Array<number>>
   modelName: string
 }
 
-interface Read {
+interface Read extends BaseModelServiceOperation {
   kind: 'read'
   fields?: any
   ids: Array<Array<number>>
   modelName: string
 }
 
-interface Search {
+interface Search extends BaseModelServiceOperation {
   kind: 'search'
   domain: any
   modelName: string
   optionalParameters?: any
 }
 
-interface SearchCount {
+interface SearchCount extends BaseModelServiceOperation {
   kind: 'searchCount'
   domain: any
   modelName: string
 }
 
-interface SearchRead {
+interface SearchRead extends BaseModelServiceOperation {
   kind: 'searchRead'
   domain: any
   modelName: string
   optionalParameters?: any
 }
 
-interface Update {
+interface Update extends BaseModelServiceOperation {
   kind: 'update'
   fieldsValues: any
   ids: Array<number>
   modelName: string
 }
 
-interface NameSearch {
+interface NameSearch extends BaseModelServiceOperation {
   kind: 'nameSearch'
   modelName: string
   nameToSearch: string
   optionalParameters?: any
 }
 
-interface DefaultGet {
+interface DefaultGet extends BaseModelServiceOperation {
   kind: 'defaultGet'
   modelName: string
   fieldsNames: Array<string>
 }
 
-interface FieldsGet {
+interface FieldsGet extends BaseModelServiceOperation {
   kind: 'fieldsGet'
   modelName: string
   fieldsNames?: Array<string>
   attributes?: Array<string>
 }
 
-interface NameGet {
+interface NameGet extends BaseModelServiceOperation {
   kind: 'nameGet'
   modelName: string
   ids: Array<number>
 }
 
-interface OnChange {
+interface OnChange extends BaseModelServiceOperation {
   kind: 'onChange'
   modelName: string
   values: any
@@ -276,7 +943,7 @@ interface OnChange {
   fieldOnChange: any
 }
 
-interface CallMethod {
+interface CallMethod extends BaseModelServiceOperation {
   kind: 'callMethod'
   modelName: string
   methodName: string
@@ -284,89 +951,35 @@ interface CallMethod {
   kwargs?: any
 }
 
-interface BaseResult {
-  result: any
+interface DBExist extends BaseDBServiceOperation {
+  kind: 'dbExist'
+  dbName: string
 }
 
-export interface AuthenticateResult {
-  kind: 'authenticate'
-  uid: number
+interface ListDB extends BaseDBServiceOperation {
+  kind: 'listDB'
 }
 
-interface FetchCommonInformationResult extends BaseResult {
-  kind: 'fetchCommonInformation'
+interface AuthorizedDBServiceOperation extends BaseDBServiceOperation {
+  adminPassword: string
 }
 
-export interface CreateResult extends BaseResult {
-  kind: 'create'
+interface CreateDB extends AuthorizedDBServiceOperation {
+  kind: 'createDB'
+  dbName: string
+  demo: boolean
+  lang: string
+  userPassword: string
+  login: string
+  countryCode: string
 }
 
-interface DeleteResult extends BaseResult {
-  kind: 'delete'
-}
+export type ServiceOperationResult = any
 
-interface ReadResult extends BaseResult {
-  kind: 'read'
-}
+export type ServiceOperation = CommonServiceOperation | ModelServiceOperation | DBServiceOperation
 
-interface SearchResult extends BaseResult {
-  kind: 'search'
-}
-
-interface SearchCountResult extends BaseResult {
-  kind: 'searchCount'
-}
-
-interface SearchReadResult extends BaseResult {
-  kind: 'searchRead'
-}
-interface NameSearchResult extends BaseResult {
-  kind: 'nameSearch'
-}
-
-interface UpdateResult extends BaseResult {
-  kind: 'update'
-}
-
-interface DefaultGetResult extends BaseResult {
-  kind: 'defaultGet'
-}
-
-interface FieldsGetResult extends BaseResult {
-  kind: 'fieldsGet'
-}
-
-interface NameGetResult extends BaseResult {
-  kind: 'nameGet'
-}
-
-interface OnChangeResult extends BaseResult {
-  kind: 'onChange'
-}
-
-interface CallMethodResult extends BaseResult {
-  kind: 'callMethod'
-}
-
-export type UnauthenticatedOperationResult = AuthenticateResult | FetchCommonInformationResult
-
-export type AuthenticatedOperationResult =
-  | CreateResult
-  | DeleteResult
-  | ReadResult
-  | SearchResult
-  | SearchCountResult
-  | SearchReadResult
-  | NameSearchResult
-  | UpdateResult
-  | DefaultGetResult
-  | FieldsGetResult
-  | NameGetResult
-  | OnChangeResult
-  | CallMethodResult
-
-type UnauthenticatedOperation = Authenticate | FetchCommonInformation
-type AuthenticatedOperation =
+type CommonServiceOperation = Authenticate | GetVersion
+type ModelServiceOperation =
   | Create
   | Delete
   | Read
@@ -381,291 +994,40 @@ type AuthenticatedOperation =
   | OnChange
   | CallMethod
 
-export const executeAuthenticatedClient = (
-  client: AuthenticatedClient,
-  operation: AuthenticatedOperation,
-  callback: (result: Either<XMLRPCClientError, AuthenticatedOperationResult>) => any
-): void => {
-  switch (operation.kind) {
-    case 'create': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'create', [
-          [operation.fieldsValues]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createCreateResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'delete': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'unlink', [
-          operation.ids
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createDeleteResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'search': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(
-          operation.modelName,
-          'search',
-          [[operation.domain]],
-          operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createSearchResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'searchCount': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'search_count', [
-          [operation.domain]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createSearchCountResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'searchRead': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(
-          operation.modelName,
-          'search_read',
-          [[operation.domain]],
-          operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createSearchReadResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'nameSearch': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(
-          operation.modelName,
-          'name_search',
-          [[operation.nameToSearch]],
-          operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createNameSearchResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'read': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(
-          operation.modelName,
-          'read',
-          [operation.ids],
-          operation.fields
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createReadResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'update': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'write', [
-          [operation.ids].concat(operation.fieldsValues)
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createUpdateResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'defaultGet': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'default_get', [
-          [operation.fieldsNames]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createDefaultGetResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'fieldsGet': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'fields_get', [
-          [operation.fieldsNames].concat(operation.attributes)
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createFieldsGetResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'nameGet': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'name_get', [
-          [operation.ids]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createNameGetResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'onChange': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(operation.modelName, 'onchange', [
-          [[], operation.values, operation.fieldName, operation.fieldOnChange]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createOnChangeResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'callMethod': {
-      client.client.methodCall(
-        'execute_kw',
-        Object.values(client.authenticatedData).concat(
-          operation.modelName,
-          operation.methodName,
-          operation.args,
-          operation.kwargs
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createCallMethodResult(value)))
-          }
-        }
-      )
-      return
-    }
+type DBServiceOperation = DBExist | ListDB | CreateDB
 
-    default:
-      /* istanbul ignore next */
-      const exhaustiveCheck: never = operation
-  }
+type CreateAuthenticateParams = {
+  credentials: AuthenticateCredentials
 }
 
-export const executeUnauthenticatedClient = (
-  client: UnauthenticatedClient,
-  operation: UnauthenticatedOperation,
-  callback: (result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) => any
-): void => {
-  switch (operation.kind) {
-    case 'authenticate': {
-      client.client.methodCall(
-        'authenticate',
-        Object.values(operation.authenticationData),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(error))
-          } else {
-            callback(right(createAuthenticateResult(value)))
-          }
-        }
-      )
-      return
-    }
-    case 'fetchCommonInformation': {
-      client.client.methodCall('version', [], (error: XMLRPCClientError, value: any) => {
-        if (error) {
-          callback(left(error))
-        } else {
-          callback(right(createFetchCommonInformationResult(value)))
-        }
-      })
-      return
-    }
-
-    default:
-      /* istanbul ignore next */
-      const exhaustiveCheck: never = operation
-  }
-}
-
-export const createAuthenticate = (authenticationData: AuthenticationData): Authenticate => {
+export const createAuthenticate = ({ credentials }: CreateAuthenticateParams): Authenticate => {
   const authenticate: Authenticate = {
     kind: 'authenticate',
-    authenticationData: authenticationData
+    serviceType: 'common',
+    credentials
   }
 
   return authenticate
 }
 
-export const createCreate = (modelName: string, fieldsValues: any): Create => {
+export const createGetVersion = (): GetVersion => {
+  const getVersion: GetVersion = {
+    kind: 'getVersion',
+    serviceType: 'common'
+  }
+
+  return getVersion
+}
+
+type CreateCreateParams = {
+  modelName: string
+  fieldsValues: any
+}
+
+export const createCreate = ({ modelName, fieldsValues }: CreateCreateParams): Create => {
   const create: Create = {
     kind: 'create',
+    serviceType: 'model',
     fieldsValues: fieldsValues,
     modelName: modelName
   }
@@ -673,9 +1035,15 @@ export const createCreate = (modelName: string, fieldsValues: any): Create => {
   return create
 }
 
-export const createDelete = (modelName: string, ids: Array<Array<number>>): Delete => {
+type CreateDeleteParams = {
+  modelName: string
+  ids: Array<Array<number>>
+}
+
+export const createDelete = ({ modelName, ids }: CreateDeleteParams): Delete => {
   const unlink: Delete = {
     kind: 'delete',
+    serviceType: 'model',
     ids: ids,
     modelName: modelName
   }
@@ -683,21 +1051,20 @@ export const createDelete = (modelName: string, ids: Array<Array<number>>): Dele
   return unlink
 }
 
-export const createFetchCommonInformation = (): FetchCommonInformation => {
-  const fetchCommonInformation: FetchCommonInformation = {
-    kind: 'fetchCommonInformation'
-  }
-
-  return fetchCommonInformation
+type CreateSearchParams = {
+  modelName: string
+  searchDomain: any
+  optionalParameters: any
 }
 
-export const createSearch = (
-  modelName: string,
-  searchDomain: any,
-  optionalParameters: any
-): Search => {
+export const createSearch = ({
+  modelName,
+  searchDomain,
+  optionalParameters
+}: CreateSearchParams): Search => {
   const search: Search = {
     kind: 'search',
+    serviceType: 'model',
     domain: searchDomain,
     modelName: modelName,
     optionalParameters: optionalParameters
@@ -706,9 +1073,18 @@ export const createSearch = (
   return search
 }
 
-export const createSearchCount = (modelName: string, searchDomain: any): SearchCount => {
+type CreateSearchCountParams = {
+  modelName: string
+  searchDomain: any
+}
+
+export const createSearchCount = ({
+  modelName,
+  searchDomain
+}: CreateSearchCountParams): SearchCount => {
   const searchCount: SearchCount = {
     kind: 'searchCount',
+    serviceType: 'model',
     domain: searchDomain,
     modelName: modelName
   }
@@ -716,13 +1092,16 @@ export const createSearchCount = (modelName: string, searchDomain: any): SearchC
   return searchCount
 }
 
-export const createRead = (
-  modelName: string,
-  ids: Array<Array<number>>,
-  fields: Array<string> = []
-): Read => {
+type CreateReadParams = {
+  modelName: string
+  ids: Array<Array<number>>
+  fields?: Array<string>
+}
+
+export const createRead = ({ modelName, ids, fields = [] }: CreateReadParams): Read => {
   const read: Read = {
     kind: 'read',
+    serviceType: 'model',
     modelName: modelName,
     ids: ids,
     fields: {
@@ -733,13 +1112,20 @@ export const createRead = (
   return read
 }
 
-export const createSearchRead = (
-  modelName: string,
-  searchDomain: any,
+type CreateSearchReadParams = {
+  modelName: string
+  searchDomain: any
   optionalParameters: any
-): SearchRead => {
+}
+
+export const createSearchRead = ({
+  modelName,
+  searchDomain,
+  optionalParameters
+}: CreateSearchReadParams): SearchRead => {
   const searchRead: SearchRead = {
     kind: 'searchRead',
+    serviceType: 'model',
     domain: searchDomain,
     modelName: modelName,
     optionalParameters: optionalParameters
@@ -748,13 +1134,20 @@ export const createSearchRead = (
   return searchRead
 }
 
-export const createNameSearch = (
-  modelName: string,
-  nameToSearch: string,
+type CreateNameSearchParams = {
+  modelName: string
+  nameToSearch: string
   optionalParameters: any
-): NameSearch => {
+}
+
+export const createNameSearch = ({
+  modelName,
+  nameToSearch,
+  optionalParameters
+}: CreateNameSearchParams): NameSearch => {
   const nameSearch: NameSearch = {
     kind: 'nameSearch',
+    serviceType: 'model',
     modelName: modelName,
     nameToSearch: nameToSearch,
     optionalParameters: optionalParameters
@@ -763,9 +1156,16 @@ export const createNameSearch = (
   return nameSearch
 }
 
-export const createUpdate = (modelName: string, ids: Array<number>, fieldsValues: any): Update => {
+type CreateUpdateParams = {
+  modelName: string
+  ids: Array<number>
+  fieldsValues: any
+}
+
+export const createUpdate = ({ modelName, ids, fieldsValues }: CreateUpdateParams): Update => {
   const update: Update = {
     kind: 'update',
+    serviceType: 'model',
     modelName: modelName,
     fieldsValues: fieldsValues,
     ids: ids
@@ -774,9 +1174,18 @@ export const createUpdate = (modelName: string, ids: Array<number>, fieldsValues
   return update
 }
 
-export const createDefaultGet = (modelName: string, fieldsNames: Array<string>): DefaultGet => {
+type CreateDefaultGetParams = {
+  modelName: string
+  fieldsNames: Array<string>
+}
+
+export const createDefaultGet = ({
+  modelName,
+  fieldsNames
+}: CreateDefaultGetParams): DefaultGet => {
   const defaultGet: DefaultGet = {
     kind: 'defaultGet',
+    serviceType: 'model',
     modelName: modelName,
     fieldsNames: fieldsNames
   }
@@ -784,13 +1193,20 @@ export const createDefaultGet = (modelName: string, fieldsNames: Array<string>):
   return defaultGet
 }
 
-export const createFieldsGet = (
-  modelName: string,
-  fieldsNames?: Array<string>,
+type CreateFieldsGetParams = {
+  modelName: string
+  fieldsNames?: Array<string>
   attributes?: Array<string>
-): FieldsGet => {
+}
+
+export const createFieldsGet = ({
+  modelName,
+  fieldsNames = [],
+  attributes
+}: CreateFieldsGetParams): FieldsGet => {
   const fieldsGet: FieldsGet = {
     kind: 'fieldsGet',
+    serviceType: 'model',
     modelName: modelName,
     fieldsNames: fieldsNames,
     attributes: attributes
@@ -799,9 +1215,15 @@ export const createFieldsGet = (
   return fieldsGet
 }
 
-export const createNameGet = (modelName: string, ids: Array<number>): NameGet => {
+type CreateNameGetParams = {
+  modelName: string
+  ids: Array<number>
+}
+
+export const createNameGet = ({ modelName, ids }: CreateNameGetParams): NameGet => {
   const nameGet: NameGet = {
     kind: 'nameGet',
+    serviceType: 'model',
     modelName: modelName,
     ids: ids
   }
@@ -809,14 +1231,22 @@ export const createNameGet = (modelName: string, ids: Array<number>): NameGet =>
   return nameGet
 }
 
-export const createOnChange = (
-  modelName: string,
-  values: any,
-  fieldName: Array<string>,
+type CreateOnChangeParams = {
+  modelName: string
+  values: any
+  fieldName: Array<string>
   fieldOnChange: any
-): OnChange => {
+}
+
+export const createOnChange = ({
+  modelName,
+  values,
+  fieldName,
+  fieldOnChange
+}: CreateOnChangeParams): OnChange => {
   const onChange: OnChange = {
     kind: 'onChange',
+    serviceType: 'model',
     modelName: modelName,
     values: values,
     fieldName: fieldName,
@@ -826,14 +1256,22 @@ export const createOnChange = (
   return onChange
 }
 
-export const createCallMethod = (
-  modelName: string,
-  methodName: string,
-  args: Array<any>,
+type CreateCallMethodParams = {
+  modelName: string
+  methodName: string
+  args: Array<any>
   kwargs?: any
-): CallMethod => {
+}
+
+export const createCallMethod = ({
+  modelName,
+  methodName,
+  args,
+  kwargs
+}: CreateCallMethodParams): CallMethod => {
   const callMethod: CallMethod = {
     kind: 'callMethod',
+    serviceType: 'model',
     modelName: modelName,
     methodName: methodName,
     args: args,
@@ -843,77 +1281,59 @@ export const createCallMethod = (
   return callMethod
 }
 
-const createAuthenticateResult = (uid: number): AuthenticateResult => ({
-  kind: 'authenticate',
-  uid
-})
+type CreateDBExistParams = {
+  dbName: string
+}
 
-const createCreateResult = (uid: number): CreateResult => ({
-  kind: 'create',
-  result: uid
-})
+export const createDBExist = ({ dbName }: CreateDBExistParams): DBExist => {
+  const dbExist: DBExist = {
+    kind: 'dbExist',
+    serviceType: 'db',
+    dbName
+  }
 
-const createDeleteResult = (status: boolean): DeleteResult => ({
-  kind: 'delete',
-  result: status
-})
+  return dbExist
+}
 
-const createFetchCommonInformationResult = (result: any): FetchCommonInformationResult => ({
-  kind: 'fetchCommonInformation',
-  result: result
-})
+export const createListDB = (): ListDB => {
+  const listDB: ListDB = {
+    kind: 'listDB',
+    serviceType: 'db'
+  }
 
-const createReadResult = (result: any): ReadResult => ({
-  kind: 'read',
-  result: result
-})
+  return listDB
+}
 
-const createSearchResult = (result: any): SearchResult => ({
-  kind: 'search',
-  result: result
-})
+type CreateCreateDBParams = {
+  adminPassword: string
+  dbName: string
+  demo: boolean
+  lang: string
+  userPassword: string
+  login: string
+  countryCode: string
+}
 
-const createSearchCountResult = (result: any): SearchCountResult => ({
-  kind: 'searchCount',
-  result: result
-})
+export const createDB = ({
+  adminPassword,
+  dbName,
+  demo,
+  lang,
+  userPassword,
+  login,
+  countryCode
+}: CreateCreateDBParams): CreateDB => {
+  const createDB: CreateDB = {
+    kind: 'createDB',
+    serviceType: 'db',
+    adminPassword,
+    dbName,
+    demo,
+    lang,
+    userPassword,
+    login,
+    countryCode
+  }
 
-const createSearchReadResult = (result: any): SearchReadResult => ({
-  kind: 'searchRead',
-  result: result
-})
-
-const createNameSearchResult = (result: any): NameSearchResult => ({
-  kind: 'nameSearch',
-  result: result
-})
-
-const createUpdateResult = (result: any): UpdateResult => ({
-  kind: 'update',
-  result: result
-})
-
-const createDefaultGetResult = (result: any): DefaultGetResult => ({
-  kind: 'defaultGet',
-  result: result
-})
-
-const createFieldsGetResult = (result: any): FieldsGetResult => ({
-  kind: 'fieldsGet',
-  result: result
-})
-
-const createNameGetResult = (result: any): NameGetResult => ({
-  kind: 'nameGet',
-  result: result
-})
-
-const createOnChangeResult = (result: any): OnChangeResult => ({
-  kind: 'onChange',
-  result: result
-})
-
-const createCallMethodResult = (result: any): CallMethodResult => ({
-  kind: 'callMethod',
-  result: result
-})
+  return createDB
+}

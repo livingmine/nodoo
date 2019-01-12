@@ -1,12 +1,8 @@
 import {
-  AuthenticatedOperationResult,
   createAuthenticate,
-  createAuthenticatedClient,
-  createAuthenticationData,
   createSecureClientOptions,
   createCreate,
   createDelete,
-  createFetchCommonInformation,
   createRead,
   createUpdate,
   createSearch,
@@ -14,16 +10,25 @@ import {
   createSearchRead,
   createNameSearch,
   createDefaultGet,
-  createUnauthenticatedClient,
-  executeAuthenticatedClient,
-  executeUnauthenticatedClient,
-  UnauthenticatedOperationResult,
   XMLRPCClientError,
   createFieldsGet,
   createNameGet,
   createOnChange,
   createInsecureClientOptions,
-  createCallMethod
+  createCallMethod,
+  createCommonService,
+  createGetVersion,
+  executeService,
+  ServiceOperationResult,
+  createModelService,
+  ServiceOperationError,
+  createDBService,
+  createDBExist,
+  createListDB,
+  createServiceOperationError,
+  createAuthenticateCredentials,
+  createModelServiceCredentials,
+  createDB
 } from '../src/nodoo'
 import { fieldsGetResult } from './methodsResult'
 
@@ -32,7 +37,9 @@ import { Either } from 'fp-ts/lib/Either'
 describe('Client Preparation Test', () => {
   it('can create secure client', done => {
     const host = 'odoo.topbrand.rubyh.co'
-    const secureClient = createSecureClientOptions(host)
+    const secureClient = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
     expect(secureClient).toEqual({
       kind: 'secure',
@@ -44,7 +51,10 @@ describe('Client Preparation Test', () => {
   it('can create insecure client', done => {
     const host = 'odoo.topbrand.rubyh.co'
     const port = 8069
-    const insecureClient = createInsecureClientOptions(host, port)
+    const insecureClient = createInsecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co',
+      port: 8069
+    })
 
     expect(insecureClient).toEqual({
       kind: 'insecure',
@@ -53,42 +63,9 @@ describe('Client Preparation Test', () => {
     })
     done()
   })
-
-  it('can create secure unauthenticated client', done => {
-    const host = 'odoo.topbrand.rubyh.co'
-    const secureClient = createSecureClientOptions(host)
-
-    createUnauthenticatedClient(secureClient).fold(
-      error => {
-        expect(error).toBe('Fail to create unauthenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        expect(unauthenticatedClient.kind).toBe('unauthenticated')
-        done()
-      }
-    )
-  })
-
-  it('can create secure authenticated client', done => {
-    const host = 'odoo.topbrand.rubyh.co'
-    const secureClient = createSecureClientOptions(host)
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-
-    createAuthenticatedClient(secureClient, authenticationData, 1).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        expect(unauthenticatedClient.kind).toBe('authenticated')
-        done()
-      }
-    )
-  })
 })
 
-describe('Common Info Test', () => {
+describe('Common Service Test', () => {
   it('can get common info', done => {
     const resp = {
       server_version: '11.0',
@@ -97,418 +74,279 @@ describe('Common Info Test', () => {
       protocol_version: 1
     }
 
-    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
-      error => {
-        expect(error).toBe('Fail to create unauthenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        unauthenticatedClient.client.methodCall = methodCallFn
-        executeUnauthenticatedClient(
-          unauthenticatedClient,
-          createFetchCommonInformation(),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
+    const operation = createGetVersion()
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const getVersionService = createCommonService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: UnauthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'authenticate': {
-              return
-            }
-            case 'fetchCommonInformation': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it('handle error correctly when unable to get common info', done => {
-    const errorMessage = 'An error'
-
-    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
-      error => {
-        expect(error).toBe('Fail to create unauthenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(errorMessage, null)
-        })
-        unauthenticatedClient.client.methodCall = methodCallFn
-        executeUnauthenticatedClient(
-          unauthenticatedClient,
-          createFetchCommonInformation(),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(errorMessage)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: UnauthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'authenticate': {
-              return
-            }
-            case 'fetchCommonInformation': {
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
-  })
-})
 
-describe('Authentication Test', () => {
+    executeService({
+      service: getVersionService,
+      callback
+    })
+  })
+
   it('can authenticate with correct data', done => {
     const resp = 1
 
-    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
-      error => {
-        expect(error).toBe('Fail to create unauthenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        unauthenticatedClient.client.methodCall = methodCallFn
-        executeUnauthenticatedClient(
-          unauthenticatedClient,
-          createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
+    const operation = createAuthenticate({
+      credentials: createAuthenticateCredentials({
+        db: 'topbrand',
+        username: 'admin',
+        password: 'password'
+      })
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createCommonService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: UnauthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'authenticate': {
-              expect(result.uid).toBe(resp)
-              done()
-              return
-            }
-            case 'fetchCommonInformation': {
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('handle error correctly when authentication fail', done => {
-    const errorMessage = 'An error'
+    // Authentication service returns false on invalid credentials
+    const resp = false
 
-    createUnauthenticatedClient(createSecureClientOptions('odoo.topbrand.rubyh.co')).fold(
-      error => {
-        expect(error).toBe('Fail to create unauthenticated client.')
-        done()
-      },
-      unauthenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(errorMessage, null)
-        })
-        unauthenticatedClient.client.methodCall = methodCallFn
-        executeUnauthenticatedClient(
-          unauthenticatedClient,
-          createAuthenticate(createAuthenticationData('topbrand', 'admin', 'password')),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, UnauthenticatedOperationResult>) {
+    const credentials = createAuthenticateCredentials({
+      db: 'topbrand',
+      username: 'admin',
+      password: 'wrongpassword'
+    })
+
+    const operation = createAuthenticate({
+      credentials
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createCommonService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(errorMessage)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: UnauthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'authenticate': {
-              return
-            }
-            case 'fetchCommonInformation': {
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 })
 
-describe('Calling Methods Test', () => {
+describe('Model Service Test', () => {
   it('can list records', done => {
-    const resp = [127, 126]
+    const resp = [18, 9]
 
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearch('res.partner', [], { limit: 2, offset: 1 }),
-          callback
-        )
-      }
-    )
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const operation = createSearch({
+      modelName: 'res.partner',
+      searchDomain: [],
+      optionalParameters: { limit: 2, offset: 1 }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'search': {
-              expect(result.result).toEqual(resp)
-              done()
-              return
-            }
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'searchCount':
-            case 'searchRead':
-            case 'nameSearch':
-            case 'update':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can not list records', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    const resp = 'An Error'
+    const XMLRPCClientError = {
+      faultCode: 3,
+      faultString: 'Access denied'
+    }
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearch('res.partner', [], { limit: 2, offset: 1 }),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'passwordz'
+    })
+
+    const operation = createSearch({
+      modelName: 'res.partner',
+      searchDomain: [],
+      optionalParameters: { limit: 2, offset: 1 }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(XMLRPCClientError, null)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (error: ServiceOperationError) => {
+          expect(error.message).toEqual(XMLRPCClientError.faultString)
           done()
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'search':
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'searchCount':
-            case 'searchRead':
-            case 'nameSearch':
-            case 'update':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          return
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can count records', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     const resp = 7
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearchCount('res.partner', []),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createSearchCount({
+      modelName: 'res.partner',
+      searchDomain: []
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'searchRead':
-            case 'update':
-            case 'search':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'searchCount': {
-              expect(result.result).toEqual(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it('can not count records', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearchCount('res.partner', []),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'searchRead':
-            case 'update':
-            case 'search':
-            case 'nameSearch':
-            case 'searchCount':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
-  it("can read records' fields", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+  it("can read records' fields by specifying list of fields to read", done => {
     const resp = [
       {
         id: 6,
@@ -516,120 +354,105 @@ describe('Calling Methods Test', () => {
       }
     ]
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createRead('res.partner', [[6]], ['name']),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createRead({
+      modelName: 'res.partner',
+      ids: [[6]],
+      fields: ['name']
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'read': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
-  it("can not read records' fields", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createRead('res.partner', [[6]], ['name']),
-          callback
-        )
+  it("can read records' fields without specifying list of fields to read", done => {
+    // The actual resp shows way more fields than below
+    const resp = [
+      {
+        id: 6,
+        name: 'The Partner'
       }
-    )
+    ]
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createRead({
+      modelName: 'res.partner',
+      ids: [[6]]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'read':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it("can search and read records' fields", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     const resp = [
       { id: 3, name: 'Administrator' },
       { id: 123, name: 'Andi' },
@@ -638,617 +461,256 @@ describe('Calling Methods Test', () => {
       { id: 127, name: 'Andi' }
     ]
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearchRead('res.partner', [], {
-            fields: ['name'],
-            limit: 5
-          }),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createSearchRead({
+      modelName: 'res.partner',
+      searchDomain: [],
+      optionalParameters: {
+        fields: ['name'],
+        limit: 5
+      }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'searchRead': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it("can not search and read records' fields", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createSearchRead('res.partner', [], {
-            fields: ['name'],
-            limit: 5
-          }),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'update':
-            case 'nameSearch':
-            case 'searchRead':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it("can search and read records' fields with name representation", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     const resp = [[3, 'Administrator']]
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createNameSearch('res.partner', 'Admin', {
-            args: [['is_company', '=', true]],
-            operator: 'ilike',
-            limit: 5
-          }),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createNameSearch({
+      modelName: 'res.partner',
+      nameToSearch: 'Admin',
+      optionalParameters: {
+        args: [['is_company', '=', true]],
+        operator: 'ilike',
+        limit: 5
+      }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'nameSearch': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it("can not search and read records' fields with name representation", done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createNameSearch('res.partner', 'Admin', {
-            args: [['is_company', '=', true]],
-            operator: 'ilike',
-            limit: 5
-          }),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can create record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // In odoo, creating a record returns only the ID of the created record.
-    const resp = 128
+    const resp = 42
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createCreate('res.partner', {
-            name: 'New User'
-          }),
-          callback
-        )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createCreate({
+      modelName: 'res.partner',
+      fieldsValues: {
+        name: 'New User'
       }
-    )
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it('can not create record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // In odoo, creating a record returns only the ID of the created record.
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createCreate('res.partner', {
-            name: 'New User'
-          }),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can update record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // In odoo, updating a record returns a boolean.
     const resp = true
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createUpdate('res.partner', [7, 8], {
-            name: 'New User Again'
-          }),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createUpdate({
+      modelName: 'res.partner',
+      ids: [32, 33],
+      fieldsValues: {
+        name: 'New User Again'
+      }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'update': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it('can not update record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // In odoo, updating a record returns a boolean.
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createUpdate('res.partner', [7, 8], {
-            name: 'New User Again'
-          }),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'delete':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-            case 'update': {
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can delete record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // In odoo, deleting a record returns a boolean.
     const resp = true
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createDelete('res.partner', [[126]]),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createDelete({
+      modelName: 'res.partner',
+      ids: [[126]]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (_: XMLRPCClientError) => {
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create': {
-              return
-            }
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'delete': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
-  })
-
-  it('can not delete record', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // In odoo, deleting a record returns a boolean.
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createDelete('res.partner', [[126]]),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
           done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create': {
-              return
-            }
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can default get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // Default get a purchase order model returns 9 default fields
     const resp = {
       date_order: '2018-12-23 07:20:38',
@@ -1262,428 +724,225 @@ describe('Calling Methods Test', () => {
       company_id: 1
     }
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createDefaultGet('purchase.order', [
-            'state',
-            'picking_count',
-            'picking_ids',
-            'invoice_count',
-            'invoice_ids',
-            'name',
-            'partner_id',
-            'partner_ref',
-            'currency_id',
-            'is_shipped',
-            'date_order',
-            'origin',
-            'company_id',
-            'order_line',
-            'amount_untaxed',
-            'amount_tax',
-            'amount_total',
-            'notes',
-            'date_planned',
-            'picking_type_id',
-            'dest_address_id',
-            'default_location_dest_id_usage',
-            'incoterm_id',
-            'invoice_status',
-            'payment_term_id',
-            'fiscal_position_id',
-            'date_approve',
-            'message_follower_ids',
-            'activity_ids',
-            'message_ids'
-          ]),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createDefaultGet({
+      modelName: 'purchase.order',
+      fieldsNames: [
+        'state',
+        'picking_count',
+        'picking_ids',
+        'invoice_count',
+        'invoice_ids',
+        'name',
+        'partner_id',
+        'partner_ref',
+        'currency_id',
+        'is_shipped',
+        'date_order',
+        'origin',
+        'company_id',
+        'order_line',
+        'amount_untaxed',
+        'amount_tax',
+        'amount_total',
+        'notes',
+        'date_planned',
+        'picking_type_id',
+        'dest_address_id',
+        'default_location_dest_id_usage',
+        'incoterm_id',
+        'invoice_status',
+        'payment_term_id',
+        'fiscal_position_id',
+        'date_approve',
+        'message_follower_ids',
+        'activity_ids',
+        'message_ids'
+      ]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          console.log(error)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'defaultGet': {
-              expect(Object.keys(result.result).length).toBe(9)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(Object.keys(result).length).toBe(9)
+          done()
         }
       )
     }
-  })
 
-  it('can not default get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // In odoo, deleting a record returns a boolean.
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createDefaultGet('purchase.order', [
-            'state',
-            'picking_count',
-            'picking_ids',
-            'invoice_count',
-            'invoice_ids',
-            'name',
-            'partner_id',
-            'partner_ref',
-            'currency_id',
-            'is_shipped',
-            'date_order',
-            'origin',
-            'company_id',
-            'order_line',
-            'amount_untaxed',
-            'amount_tax',
-            'amount_total',
-            'notes',
-            'date_planned',
-            'picking_type_id',
-            'dest_address_id',
-            'default_location_dest_id_usage',
-            'incoterm_id',
-            'invoice_status',
-            'payment_term_id',
-            'fiscal_position_id',
-            'date_approve',
-            'message_follower_ids',
-            'activity_ids',
-            'message_ids'
-          ]),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can fields get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     const resp = fieldsGetResult
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createFieldsGet('purchase.order', []),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createFieldsGet({
+      modelName: 'purchase.order'
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          console.log(error)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            case 'fieldsGet': {
-              expect(result.result).toEqual(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
-  it('can not fields get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // In odoo, deleting a record returns a boolean.
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createFieldsGet('purchase.order', ['state']),
-          callback
-        )
-      }
+  it('can fields get a model by specifying which fields to get', done => {
+    const resp = (({ invoice_count, picking_ids }) => ({ invoice_count, picking_ids }))(
+      fieldsGetResult
     )
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createFieldsGet({
+      modelName: 'purchase.order',
+      fieldsNames: ['invoice_count', 'picking_ids']
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create': {
-              return
-            }
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'onChange':
-            case 'callMethod':
-              return
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can name get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // Name get a purchase order model returns array of one array of the id and the name of the record
     const resp = [[1, 'PO00001']]
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createNameGet('purchase.order', [1]),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createNameGet({
+      modelName: 'purchase.order',
+      ids: [1]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          console.log(error)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'onChange':
-            case 'callMethod':
-            case 'nameGet': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
-  })
 
-  it('can not name get a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // Name get a purchase order model returns array of one array of the id and the name of the record
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createNameGet('purchase.order', [1]),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'onChange':
-            case 'callMethod':
-            case 'nameGet': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can onchange a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
     // The first onchange when opening the purchase order form returns the following object
     const resp = {
       value: {
@@ -1692,478 +951,457 @@ describe('Calling Methods Test', () => {
       }
     }
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createOnChange(
-            'purchase.order',
-            {
-              state: 'draft',
-              picking_count: 0,
-              invoice_count: 0,
-              name: 'New',
-              currency_id: 3,
-              date_order: '2018-12-19 04:51:04',
-              company_id: 1,
-              picking_type_id: 4,
-              invoice_status: 'no',
-              picking_ids: [[6, false, []]],
-              invoice_ids: [[6, false, []]],
-              partner_id: false,
-              partner_ref: false,
-              is_shipped: false,
-              origin: false,
-              order_line: [],
-              amount_untaxed: 0,
-              amount_tax: 0,
-              amount_total: 0,
-              notes: false,
-              date_planned: false,
-              dest_address_id: false,
-              default_location_dest_id_usage: false,
-              incoterm_id: false,
-              payment_term_id: false,
-              fiscal_position_id: false,
-              date_approve: false,
-              message_follower_ids: [],
-              activity_ids: [],
-              message_ids: []
-            },
-            [
-              'state',
-              'picking_count',
-              'picking_ids',
-              'invoice_count',
-              'invoice_ids',
-              'name',
-              'partner_id',
-              'partner_ref',
-              'currency_id',
-              'is_shipped',
-              'date_order',
-              'origin',
-              'company_id',
-              'order_line',
-              'amount_untaxed',
-              'amount_tax',
-              'amount_total',
-              'notes',
-              'date_planned',
-              'picking_type_id',
-              'dest_address_id',
-              'default_location_dest_id_usage',
-              'incoterm_id',
-              'invoice_status',
-              'payment_term_id',
-              'fiscal_position_id',
-              'date_approve',
-              'message_follower_ids',
-              'activity_ids',
-              'message_ids'
-            ],
-            {
-              state: '1',
-              picking_count: '',
-              picking_ids: '1',
-              invoice_count: '',
-              invoice_ids: '',
-              name: '',
-              partner_id: '1',
-              partner_ref: '',
-              currency_id: '1',
-              is_shipped: '',
-              date_order: '',
-              origin: '',
-              company_id: '1',
-              order_line: '1',
-              'order_line.currency_id': '',
-              'order_line.state': '',
-              'order_line.sequence': '',
-              'order_line.product_id': '1',
-              'order_line.name': '',
-              'order_line.move_dest_ids': '',
-              'order_line.date_planned': '1',
-              'order_line.company_id': '',
-              'order_line.account_analytic_id': '',
-              'order_line.analytic_tag_ids': '',
-              'order_line.product_qty': '1',
-              'order_line.qty_received': '1',
-              'order_line.qty_invoiced': '1',
-              'order_line.product_uom': '1',
-              'order_line.price_unit': '1',
-              'order_line.taxes_id': '1',
-              'order_line.price_subtotal': '',
-              'order_line.invoice_lines': '1',
-              'order_line.move_ids': '1',
-              amount_untaxed: '',
-              amount_tax: '',
-              amount_total: '',
-              notes: '',
-              date_planned: '',
-              picking_type_id: '1',
-              dest_address_id: '',
-              default_location_dest_id_usage: '',
-              incoterm_id: '',
-              invoice_status: '',
-              payment_term_id: '',
-              fiscal_position_id: '1',
-              date_approve: '',
-              message_follower_ids: '',
-              activity_ids: '',
-              message_ids: ''
-            }
-          ),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createOnChange({
+      modelName: 'purchase.order',
+      values: {
+        state: 'draft',
+        picking_count: 0,
+        invoice_count: 0,
+        name: 'New',
+        currency_id: 3,
+        date_order: '2018-12-19 04:51:04',
+        company_id: 1,
+        picking_type_id: 4,
+        invoice_status: 'no',
+        picking_ids: [[6, false, []]],
+        invoice_ids: [[6, false, []]],
+        partner_id: false,
+        partner_ref: false,
+        is_shipped: false,
+        origin: false,
+        order_line: [],
+        amount_untaxed: 0,
+        amount_tax: 0,
+        amount_total: 0,
+        notes: false,
+        date_planned: false,
+        dest_address_id: false,
+        default_location_dest_id_usage: false,
+        incoterm_id: false,
+        payment_term_id: false,
+        fiscal_position_id: false,
+        date_approve: false,
+        message_follower_ids: [],
+        activity_ids: [],
+        message_ids: []
+      },
+      fieldName: [
+        'state',
+        'picking_count',
+        'picking_ids',
+        'invoice_count',
+        'invoice_ids',
+        'name',
+        'partner_id',
+        'partner_ref',
+        'currency_id',
+        'is_shipped',
+        'date_order',
+        'origin',
+        'company_id',
+        'order_line',
+        'amount_untaxed',
+        'amount_tax',
+        'amount_total',
+        'notes',
+        'date_planned',
+        'picking_type_id',
+        'dest_address_id',
+        'default_location_dest_id_usage',
+        'incoterm_id',
+        'invoice_status',
+        'payment_term_id',
+        'fiscal_position_id',
+        'date_approve',
+        'message_follower_ids',
+        'activity_ids',
+        'message_ids'
+      ],
+      fieldOnChange: {
+        state: '1',
+        picking_count: '',
+        picking_ids: '1',
+        invoice_count: '',
+        invoice_ids: '',
+        name: '',
+        partner_id: '1',
+        partner_ref: '',
+        currency_id: '1',
+        is_shipped: '',
+        date_order: '',
+        origin: '',
+        company_id: '1',
+        order_line: '1',
+        'order_line.currency_id': '',
+        'order_line.state': '',
+        'order_line.sequence': '',
+        'order_line.product_id': '1',
+        'order_line.name': '',
+        'order_line.move_dest_ids': '',
+        'order_line.date_planned': '1',
+        'order_line.company_id': '',
+        'order_line.account_analytic_id': '',
+        'order_line.analytic_tag_ids': '',
+        'order_line.product_qty': '1',
+        'order_line.qty_received': '1',
+        'order_line.qty_invoiced': '1',
+        'order_line.product_uom': '1',
+        'order_line.price_unit': '1',
+        'order_line.taxes_id': '1',
+        'order_line.price_subtotal': '',
+        'order_line.invoice_lines': '1',
+        'order_line.move_ids': '1',
+        amount_untaxed: '',
+        amount_tax: '',
+        amount_total: '',
+        notes: '',
+        date_planned: '',
+        picking_type_id: '1',
+        dest_address_id: '',
+        default_location_dest_id_usage: '',
+        incoterm_id: '',
+        invoice_status: '',
+        payment_term_id: '',
+        fiscal_position_id: '1',
+        date_approve: '',
+        message_follower_ids: '',
+        activity_ids: '',
+        message_ids: ''
+      }
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          console.log(error)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'callMethod':
-              return
-            case 'onChange': {
-              expect(result.result).toEqual(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
-  })
 
-  it('can not onchange a model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // The first onchange when opening the purchase order form returns the following object
-    const resp = 'An Error'
-
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createOnChange(
-            'purchase.order',
-            {
-              state: 'draft',
-              picking_count: 0,
-              invoice_count: 0,
-              name: 'New',
-              currency_id: 3,
-              date_order: '2018-12-19 04:51:04',
-              company_id: 1,
-              picking_type_id: 4,
-              invoice_status: 'no',
-              picking_ids: [[6, false, []]],
-              invoice_ids: [[6, false, []]],
-              partner_id: false,
-              partner_ref: false,
-              is_shipped: false,
-              origin: false,
-              order_line: [],
-              amount_untaxed: 0,
-              amount_tax: 0,
-              amount_total: 0,
-              notes: false,
-              date_planned: false,
-              dest_address_id: false,
-              default_location_dest_id_usage: false,
-              incoterm_id: false,
-              payment_term_id: false,
-              fiscal_position_id: false,
-              date_approve: false,
-              message_follower_ids: [],
-              activity_ids: [],
-              message_ids: []
-            },
-            [
-              'state',
-              'picking_count',
-              'picking_ids',
-              'invoice_count',
-              'invoice_ids',
-              'name',
-              'partner_id',
-              'partner_ref',
-              'currency_id',
-              'is_shipped',
-              'date_order',
-              'origin',
-              'company_id',
-              'order_line',
-              'amount_untaxed',
-              'amount_tax',
-              'amount_total',
-              'notes',
-              'date_planned',
-              'picking_type_id',
-              'dest_address_id',
-              'default_location_dest_id_usage',
-              'incoterm_id',
-              'invoice_status',
-              'payment_term_id',
-              'fiscal_position_id',
-              'date_approve',
-              'message_follower_ids',
-              'activity_ids',
-              'message_ids'
-            ],
-            {
-              state: '1',
-              picking_count: '',
-              picking_ids: '1',
-              invoice_count: '',
-              invoice_ids: '',
-              name: '',
-              partner_id: '1',
-              partner_ref: '',
-              currency_id: '1',
-              is_shipped: '',
-              date_order: '',
-              origin: '',
-              company_id: '1',
-              order_line: '1',
-              'order_line.currency_id': '',
-              'order_line.state': '',
-              'order_line.sequence': '',
-              'order_line.product_id': '1',
-              'order_line.name': '',
-              'order_line.move_dest_ids': '',
-              'order_line.date_planned': '1',
-              'order_line.company_id': '',
-              'order_line.account_analytic_id': '',
-              'order_line.analytic_tag_ids': '',
-              'order_line.product_qty': '1',
-              'order_line.qty_received': '1',
-              'order_line.qty_invoiced': '1',
-              'order_line.product_uom': '1',
-              'order_line.price_unit': '1',
-              'order_line.taxes_id': '1',
-              'order_line.price_subtotal': '',
-              'order_line.invoice_lines': '1',
-              'order_line.move_ids': '1',
-              amount_untaxed: '',
-              amount_tax: '',
-              amount_total: '',
-              notes: '',
-              date_planned: '',
-              picking_type_id: '1',
-              dest_address_id: '',
-              default_location_dest_id_usage: '',
-              incoterm_id: '',
-              invoice_status: '',
-              payment_term_id: '',
-              fiscal_position_id: '1',
-              date_approve: '',
-              message_follower_ids: '',
-              activity_ids: '',
-              message_ids: ''
-            }
-          ),
-          callback
-        )
-      }
-    )
-
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
-      result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
-          return
-        },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'nameGet':
-            case 'callMethod':
-              return
-            case 'onChange': {
-              expect(result.result).toEqual(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
-        }
-      )
-    }
+    executeService({
+      service,
+      callback
+    })
   })
 
   it('can call a method of the model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
+    // Name get a purchase order model returns array of one array of the id and the name of the record
+    const resp = [[1, 'PO00001']]
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    // createCallMethod('stock.picking', 'button_validate', [[1]]),
+    const operation = createCallMethod({
+      modelName: 'stock.picking.type',
+      methodName: 'copy',
+      args: [[1]]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
+      result.fold(
+        (_: ServiceOperationError) => {
+          return
+        },
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
+        }
+      )
+    }
+
+    executeService({
+      service,
+      callback
+    })
+  })
+
+  it('can call a method of the model', done => {
     // Call the copy method of a purchase order model returns the id of the record
     const resp = 82
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(null, resp)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createCallMethod('purchase.order', 'copy', [[62]]),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const credentials = createModelServiceCredentials({
+      db: 'topbrand',
+      uid: 1,
+      password: 'password'
+    })
+
+    const operation = createCallMethod({
+      modelName: 'purchase.order',
+      methodName: 'copy',
+      args: [[62]]
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createModelService({
+      credentials,
+      clientOptions,
+      operation,
+      mockMethodCall
+    })
+
+    executeService({
+      service,
+      callback
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'onChange':
-            case 'callMethod':
-            case 'nameGet': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
   })
+})
 
-  it('can not call a method of the model', done => {
-    const authenticationData = createAuthenticationData('topbrand', 'admin', 'password')
-    // Call the copy method of a purchase order model returns the id of the record
-    const resp = 'An error'
+describe('DB Service Test', () => {
+  it('can check a db existence by its name', done => {
+    const resp = true
 
-    createAuthenticatedClient(
-      createSecureClientOptions('odoo.topbrand.rubyh.co'),
-      authenticationData,
-      1
-    ).fold(
-      error => {
-        expect(error).toBe('Fail to create authenticated client.')
-        done()
-      },
-      authenticatedClient => {
-        const methodCallFn = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-          callback(resp, null)
-        })
-        authenticatedClient.client.methodCall = methodCallFn
-        executeAuthenticatedClient(
-          authenticatedClient,
-          createCallMethod('purchase.order', 'copy', [[62]]),
-          callback
-        )
-      }
-    )
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
 
-    function callback(result: Either<XMLRPCClientError, AuthenticatedOperationResult>) {
+    const operation = createDBExist({
+      dbName: 'topbrand'
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createDBService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
       result.fold(
-        (error: XMLRPCClientError) => {
-          expect(error).toBe(resp)
-          done()
+        (_: ServiceOperationError) => {
           return
         },
-        (result: AuthenticatedOperationResult) => {
-          switch (result.kind) {
-            case 'create':
-            case 'read':
-            case 'search':
-            case 'searchCount':
-            case 'searchRead':
-            case 'update':
-            case 'nameSearch':
-            case 'delete':
-            case 'defaultGet':
-            case 'fieldsGet':
-            case 'onChange':
-            case 'callMethod':
-            case 'nameGet': {
-              expect(result.result).toBe(resp)
-              done()
-              return
-            }
-            default:
-              const exhaustiveCheck: never = result
-          }
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
         }
       )
     }
+
+    executeService({
+      service,
+      callback
+    })
+  })
+
+  it('can list available databases', done => {
+    const resp = ['a_name_of_db', 'another_name_of_db']
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const operation = createListDB()
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createDBService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
+      result.fold(
+        (_: ServiceOperationError) => {
+          return
+        },
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
+        }
+      )
+    }
+
+    executeService({
+      service,
+      callback
+    })
+  })
+
+  it('can create a database', done => {
+    const resp = true
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const operation = createDB({
+      adminPassword: 'admin',
+      countryCode: 'ID',
+      dbName: 'a_new_db_name',
+      demo: false,
+      lang: 'en_US',
+      login: 'admin',
+      userPassword: 'password'
+    })
+
+    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
+      callback(null, resp)
+    })
+
+    const service = createDBService({
+      operation,
+      clientOptions,
+      mockMethodCall
+    })
+
+    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
+      result.fold(
+        (_: ServiceOperationError) => {
+          return
+        },
+        (result: ServiceOperationResult) => {
+          expect(result).toEqual(resp)
+          done()
+        }
+      )
+    }
+
+    executeService({
+      service,
+      callback
+    })
+  })
+})
+
+describe('Service Operation Error Preparation Test', () => {
+  it('can create an aplication error operation error', done => {
+    const applicationError: XMLRPCClientError = {
+      body: {},
+      req: {},
+      res: {},
+      faultCode: 1,
+      faultString: 'This will be transformed to message field'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: applicationError
+    })
+
+    expect(serviceOperationError.kind).toBe('application')
+    expect(serviceOperationError.message).toBe(applicationError.faultString)
+    done()
+  })
+
+  it('can create a warning operation error', done => {
+    const warning: XMLRPCClientError = {
+      body: {},
+      req: {},
+      res: {},
+      faultCode: 2,
+      faultString: 'This will be transformed to message field'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: warning
+    })
+
+    expect(serviceOperationError.kind).toBe('warning')
+    expect(serviceOperationError.message).toBe(warning.faultString)
+    done()
+  })
+
+  it('can create an access denied operation error', done => {
+    const accessDenied: XMLRPCClientError = {
+      body: {},
+      req: {},
+      res: {},
+      faultCode: 3,
+      faultString: 'This will be transformed to message field'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: accessDenied
+    })
+
+    expect(serviceOperationError.kind).toBe('accessDenied')
+    expect(serviceOperationError.message).toBe(accessDenied.faultString)
+    done()
+  })
+
+  it('can create an access error operation error', done => {
+    const accessError: XMLRPCClientError = {
+      body: {},
+      req: {},
+      res: {},
+      faultCode: 4,
+      faultString: 'This will be transformed to message field'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: accessError
+    })
+
+    expect(serviceOperationError.kind).toBe('accessError')
+    expect(serviceOperationError.message).toBe(accessError.faultString)
+    done()
   })
 })
