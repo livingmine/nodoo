@@ -10,29 +10,21 @@ import {
   createSearchRead,
   createNameSearch,
   createDefaultGet,
-  XMLRPCClientError,
   createFieldsGet,
   createNameGet,
   createOnChange,
   createInsecureClientOptions,
   createCallMethod,
-  createCommonService,
   createGetVersion,
-  executeService,
-  ServiceOperationResult,
-  createModelService,
-  ServiceOperationError,
-  createDBService,
   createDBExist,
   createListDB,
   createServiceOperationError,
   createAuthenticateCredentials,
-  createModelServiceCredentials,
-  createDB
+  createDB,
+  createService,
+  OdooJSONRPCError
 } from '../src/nodoo'
 import { fieldsGetResult } from './methodsResult'
-
-import { Either } from 'fp-ts/lib/Either'
 
 describe('Client Preparation Test', () => {
   it('can create secure client', done => {
@@ -66,6 +58,10 @@ describe('Client Preparation Test', () => {
 })
 
 describe('Common Service Test', () => {
+  beforeEach(() => {
+    fetchMock.resetMocks()
+  })
+
   it('can get common info', done => {
     const resp = {
       server_version: '11.0',
@@ -74,42 +70,82 @@ describe('Common Service Test', () => {
       protocol_version: 1
     }
 
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
     const operation = createGetVersion()
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const getVersionService = createCommonService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service: getVersionService,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can authenticate with correct data', done => {
-    const resp = 1
+    const resp = {
+      max_time_between_keys_in_ms: 55,
+      username: 'admin',
+      uid: 1,
+      user_context: {
+        tz: false,
+        uid: 1,
+        lang: 'en_US'
+      },
+      is_superuser: true,
+      session_id: '4c2ba2db2828d405d5c4145a6da7cb4447397a3c',
+      db: 'dbname',
+      server_version: '11.0',
+      partner_id: 3,
+      'web.base.url': 'http://weburl.com/',
+      currencies: {
+        '13': {
+          position: 'before',
+          digits: [69, 2],
+          symbol: 'Rp'
+        }
+      },
+      company_id: 1,
+      user_companies: false,
+      is_system: true,
+      server_version_info: [11, 0, 0, 'final', 0, ''],
+      name: 'Administrator',
+      web_tours: []
+    }
+
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
@@ -123,37 +159,59 @@ describe('Common Service Test', () => {
       })
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createCommonService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('handle error correctly when authentication fail', done => {
-    // Authentication service returns false on invalid credentials
-    const resp = false
+    // Authentication service returns the following on invalid credentials
+    const resp = {
+      company_id: null,
+      currencies: {},
+      db: 'dbname',
+      is_superuser: false,
+      is_system: false,
+      max_time_between_keys_in_ms: 55,
+      name: false,
+      partner_id: null,
+      server_version: '11.0',
+      server_version_info: [11, 0, 0, 'final', 0, ''],
+      session_id: 'a4db275aa69ee55c01a67798c36e8e7473389e16',
+      uid: false,
+      user_companies: false,
+      user_context: {},
+      username: false,
+      'web.base.url': 'http://weburl.com/'
+    }
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
@@ -169,180 +227,131 @@ describe('Common Service Test', () => {
       credentials
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createCommonService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 })
 
 describe('Model Service Test', () => {
-  it('can list records', done => {
-    const resp = [18, 9]
-
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
-    const operation = createSearch({
-      modelName: 'res.partner',
-      searchDomain: [],
-      optionalParameters: { limit: 2, offset: 1 }
-    })
-
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
-    })
+  beforeEach(() => {
+    fetchMock.resetMocks()
   })
 
-  it('can not list records', done => {
-    const XMLRPCClientError = {
-      faultCode: 3,
-      faultString: 'Access denied'
-    }
+  it('can list records', done => {
+    const resp = [18, 9]
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+    // Uncomment this to un-mock the fetch functionality
+    // fetchMock.mockImplementationOnce(require.requireActual('cross-fetch').default)
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'passwordz'
-    })
-
     const operation = createSearch({
       modelName: 'res.partner',
-      searchDomain: [],
-      optionalParameters: { limit: 2, offset: 1 }
+      domain: [],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(XMLRPCClientError, null)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (error: ServiceOperationError) => {
-          expect(error.message).toEqual(XMLRPCClientError.faultString)
-          done()
-          return
-        },
-        (result: ServiceOperationResult) => {
-          return
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can count records', done => {
     const resp = 7
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createSearchCount({
       modelName: 'res.partner',
-      searchDomain: []
+      searchDomain: [],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
@@ -350,52 +359,51 @@ describe('Model Service Test', () => {
     const resp = [
       {
         id: 6,
-        name: 'The Partner'
+        name: 'Portal User Template'
       }
     ]
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createRead({
       modelName: 'res.partner',
-      ids: [[6]],
-      fields: ['name']
+      ids: [6],
+      fields: ['name'],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
@@ -404,309 +412,303 @@ describe('Model Service Test', () => {
     const resp = [
       {
         id: 6,
-        name: 'The Partner'
+        name: 'Portal User Template'
       }
     ]
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
     })
 
     const operation = createRead({
       modelName: 'res.partner',
-      ids: [[6]]
+      ids: [6],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
-    })
-  })
-
-  it("can search and read records' fields", done => {
-    const resp = [
-      { id: 3, name: 'Administrator' },
-      { id: 123, name: 'Andi' },
-      { id: 126, name: 'Andi' },
-      { id: 124, name: 'Andi' },
-      { id: 127, name: 'Andi' }
-    ]
-
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
-    const operation = createSearchRead({
-      modelName: 'res.partner',
-      searchDomain: [],
-      optionalParameters: {
-        fields: ['name'],
-        limit: 5
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
       }
-    })
-
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
-    })
-  })
-
-  it("can search and read records' fields with name representation", done => {
-    const resp = [[3, 'Administrator']]
-
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
-    const operation = createNameSearch({
-      modelName: 'res.partner',
-      nameToSearch: 'Admin',
-      optionalParameters: {
-        args: [['is_company', '=', true]],
-        operator: 'ilike',
-        limit: 5
-      }
-    })
-
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
     })
   })
 
   it('can create record', done => {
     // In odoo, creating a record returns only the ID of the created record.
     const resp = 42
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
     })
 
     const operation = createCreate({
       modelName: 'res.partner',
       fieldsValues: {
         name: 'New User'
-      }
+      },
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can update record', done => {
     // In odoo, updating a record returns a boolean.
     const resp = true
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createUpdate({
       modelName: 'res.partner',
-      ids: [32, 33],
+      ids: [99999],
       fieldsValues: {
-        name: 'New User Again'
-      }
+        id: 11,
+        name: 'Buyer Tokopedia'
+      },
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can delete record', done => {
     // In odoo, deleting a record returns a boolean.
     const resp = true
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createDelete({
       modelName: 'res.partner',
-      ids: [[126]]
+      ids: [9999],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
+    })
+  })
+
+  it("can search and read records' fields", done => {
+    const resp = {
+      length: 5,
+      records: [
+        { id: 3, name: 'Administrator' },
+        { id: 123, name: 'Andi' },
+        { id: 126, name: 'Andi' },
+        { id: 124, name: 'Andi' },
+        { id: 127, name: 'Andi' }
+      ]
+    }
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
     })
 
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
+    const operation = createSearchRead({
+      modelName: 'res.partner',
+      domain: [],
+      fields: ['name'],
+      limit: 5,
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+    })
 
-    executeService({
-      service,
-      callback
+    createService({
+      operation,
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
+    })
+  })
+
+  it("can search and read records' fields with name representation", done => {
+    const resp = [[3, 'Administrator']]
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const operation = createNameSearch({
+      modelName: 'res.partner',
+      nameToSearch: 'Admin',
+      limit: 5,
+      operator: 'ilike',
+      searchDomain: [['is_company', '=', false]],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+    })
+
+    createService({
+      operation,
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
@@ -723,15 +725,14 @@ describe('Model Service Test', () => {
       picking_type_id: 4,
       company_id: 1
     }
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
     })
 
     const operation = createDefaultGet({
@@ -767,81 +768,80 @@ describe('Model Service Test', () => {
         'message_follower_ids',
         'activity_ids',
         'message_ids'
-      ]
+      ],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(Object.keys(result).length).toBe(9)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can fields get a model', done => {
     const resp = fieldsGetResult
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createFieldsGet({
-      modelName: 'purchase.order'
+      modelName: 'purchase.order',
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
@@ -849,96 +849,94 @@ describe('Model Service Test', () => {
     const resp = (({ invoice_count, picking_ids }) => ({ invoice_count, picking_ids }))(
       fieldsGetResult
     )
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createFieldsGet({
       modelName: 'purchase.order',
-      fieldsNames: ['invoice_count', 'picking_ids']
+      fieldsNames: ['invoice_count', 'picking_ids'],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can name get a model', done => {
     // Name get a purchase order model returns array of one array of the id and the name of the record
     const resp = [[1, 'PO00001']]
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createNameGet({
       modelName: 'purchase.order',
-      ids: [1]
+      ids: [1],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
@@ -950,15 +948,14 @@ describe('Model Service Test', () => {
         currency_id: false
       }
     }
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
     })
 
     const operation = createOnChange({
@@ -1077,139 +1074,92 @@ describe('Model Service Test', () => {
         message_follower_ids: '',
         activity_ids: '',
         message_ids: ''
+      },
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+    })
+
+    createService({
+      operation,
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
       }
-    })
-
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
-    })
-  })
-
-  it('can call a method of the model', done => {
-    // Name get a purchase order model returns array of one array of the id and the name of the record
-    const resp = [[1, 'PO00001']]
-
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
-    })
-
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
-    // createCallMethod('stock.picking', 'button_validate', [[1]]),
-    const operation = createCallMethod({
-      modelName: 'stock.picking.type',
-      methodName: 'copy',
-      args: [[1]]
-    })
-
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
     })
   })
 
   it('can call a method of the model', done => {
     // Call the copy method of a purchase order model returns the id of the record
-    const resp = 82
+    const resp = 46
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const credentials = createModelServiceCredentials({
-      db: 'topbrand',
-      uid: 1,
-      password: 'password'
-    })
-
     const operation = createCallMethod({
       modelName: 'purchase.order',
       methodName: 'copy',
-      args: [[62]]
+      args: [[46]],
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createModelService({
-      credentials,
-      clientOptions,
+    createService({
       operation,
-      mockMethodCall
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
-
-    executeService({
-      service,
-      callback
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
   })
 })
 
 describe('DB Service Test', () => {
+  beforeEach(() => {
+    fetchMock.resetMocks()
+  })
+
   it('can check a db existence by its name', done => {
     const resp = true
 
@@ -1221,36 +1171,48 @@ describe('DB Service Test', () => {
       dbName: 'topbrand'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
-    const service = createDBService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can list available databases', done => {
     const resp = ['a_name_of_db', 'another_name_of_db']
+
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
@@ -1258,36 +1220,41 @@ describe('DB Service Test', () => {
 
     const operation = createListDB()
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createDBService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 
   it('can create a database', done => {
     const resp = true
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
@@ -1303,105 +1270,180 @@ describe('DB Service Test', () => {
       userPassword: 'password'
     })
 
-    const mockMethodCall = jest.fn().mockImplementation((firstArg, secondArg, callback) => {
-      callback(null, resp)
-    })
-
-    const service = createDBService({
+    createService({
       operation,
-      clientOptions,
-      mockMethodCall
-    })
-
-    function callback(result: Either<ServiceOperationError, ServiceOperationResult>) {
-      result.fold(
-        (_: ServiceOperationError) => {
-          return
-        },
-        (result: ServiceOperationResult) => {
-          expect(result).toEqual(resp)
-          done()
-        }
-      )
-    }
-
-    executeService({
-      service,
-      callback
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
     })
   })
 })
 
 describe('Service Operation Error Preparation Test', () => {
-  it('can create an aplication error operation error', done => {
-    const applicationError: XMLRPCClientError = {
-      body: {},
-      req: {},
-      res: {},
-      faultCode: 1,
-      faultString: 'This will be transformed to message field'
+  it('can create an user error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'user_error',
+        message: 'Some user error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
     }
 
     const serviceOperationError = createServiceOperationError({
-      error: applicationError
+      error: odooJSONRPCError
     })
 
-    expect(serviceOperationError.kind).toBe('application')
-    expect(serviceOperationError.message).toBe(applicationError.faultString)
+    expect(serviceOperationError.kind).toBe('userError')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
     done()
   })
 
-  it('can create a warning operation error', done => {
-    const warning: XMLRPCClientError = {
-      body: {},
-      req: {},
-      res: {},
-      faultCode: 2,
-      faultString: 'This will be transformed to message field'
+  it('can create a warning error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'warning',
+        message: 'Some warning error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
     }
 
     const serviceOperationError = createServiceOperationError({
-      error: warning
+      error: odooJSONRPCError
     })
 
     expect(serviceOperationError.kind).toBe('warning')
-    expect(serviceOperationError.message).toBe(warning.faultString)
-    done()
-  })
-
-  it('can create an access denied operation error', done => {
-    const accessDenied: XMLRPCClientError = {
-      body: {},
-      req: {},
-      res: {},
-      faultCode: 3,
-      faultString: 'This will be transformed to message field'
-    }
-
-    const serviceOperationError = createServiceOperationError({
-      error: accessDenied
-    })
-
-    expect(serviceOperationError.kind).toBe('accessDenied')
-    expect(serviceOperationError.message).toBe(accessDenied.faultString)
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
     done()
   })
 
   it('can create an access error operation error', done => {
-    const accessError: XMLRPCClientError = {
-      body: {},
-      req: {},
-      res: {},
-      faultCode: 4,
-      faultString: 'This will be transformed to message field'
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'access_error',
+        message: 'Some access error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
     }
 
     const serviceOperationError = createServiceOperationError({
-      error: accessError
+      error: odooJSONRPCError
     })
 
     expect(serviceOperationError.kind).toBe('accessError')
-    expect(serviceOperationError.message).toBe(accessError.faultString)
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
+    done()
+  })
+
+  it('can create a missing error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'missing_error',
+        message: 'Some missing error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: odooJSONRPCError
+    })
+
+    expect(serviceOperationError.kind).toBe('missingError')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
+    done()
+  })
+
+  it('can create an access denied error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'access_denied',
+        message: 'Some access denied error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: odooJSONRPCError
+    })
+
+    expect(serviceOperationError.kind).toBe('accessDenied')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
+    done()
+  })
+
+  it('can create a validation error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'validation_error',
+        message: 'Some validation error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: odooJSONRPCError
+    })
+
+    expect(serviceOperationError.kind).toBe('validationError')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
+    done()
+  })
+
+  it('can create a except ORM error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'except_orm',
+        message: 'Some except ORM error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: odooJSONRPCError
+    })
+
+    expect(serviceOperationError.kind).toBe('exceptORM')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
     done()
   })
 })

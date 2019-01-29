@@ -1,17 +1,13 @@
 import { Either, left, right } from 'fp-ts/lib/Either'
-const xmlrpc = require('xmlrpc')
-
+import 'cross-fetch/polyfill'
+import xs, { Stream } from 'xstream'
 import 'core-js/fn/object/values'
 
 // Start of client
 type Client = SecureClient | InsecureClient
 
-interface XMLRPCClient {
-  methodCall: any
-}
-
 interface BaseClient {
-  client: XMLRPCClient
+  client: Promise<Response>
 }
 
 interface SecureClient extends BaseClient {
@@ -77,43 +73,90 @@ export const createSecureClient = ({
 }: CreateClientParams): SecureClient => {
   switch (operation.serviceType) {
     case 'common': {
-      const client: XMLRPCClient = xmlrpc.createSecureClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/common'
-      })
-
-      const secureClient: SecureClient = {
-        kind: 'secure',
-        client
+      switch (operation.path) {
+        case '/web/webclient/version_info': {
+          const data = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            params: {}
+          })
+          return {
+            kind: 'secure',
+            client: fetch(`https://${clientOptions.host}${operation.path}`, {
+              method: 'POST',
+              body: data,
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'Content-Length': data.length.toString()
+              }
+            })
+          }
+        }
+        case '/web/session/authenticate': {
+          const data = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            params: operation.params
+          })
+          return {
+            kind: 'secure',
+            client: fetch(`https://${clientOptions.host}${operation.path}`, {
+              method: 'POST',
+              body: data,
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'Content-Length': data.length.toString()
+              }
+            })
+          }
+        }
+        /* istanbul ignore next */
+        default:
+          const exhaustiveCheck: never = operation
+          const neverClient: SecureClient = {} as SecureClient
+          return neverClient
       }
-
-      return secureClient
     }
     case 'db': {
-      const client: XMLRPCClient = xmlrpc.createSecureClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/db'
+      const data = JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'call',
+        params: operation.params
       })
-
-      const secureClient: SecureClient = {
+      return {
         kind: 'secure',
-        client
+        client: fetch(`https://${clientOptions.host}${operation.path}`, {
+          method: 'POST',
+          body: data,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Content-Length': data.length.toString()
+          }
+        })
       }
-
-      return secureClient
     }
     case 'model': {
-      const client: XMLRPCClient = xmlrpc.createSecureClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/object'
+      const data = JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'call',
+        params: operation.params
       })
-
-      const secureClient: SecureClient = {
+      return {
         kind: 'secure',
-        client
+        client: fetch(`https://${clientOptions.host}${operation.path}`, {
+          method: 'POST',
+          body: data,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Content-Length': data.length.toString(),
+            Cookie: `session_id=${operation.sessionToken}`
+          }
+        })
       }
-
-      return secureClient
     }
     /* istanbul ignore next */
     default:
@@ -130,45 +173,90 @@ export const createInsecureClient = ({
 }: CreateClientParams): InsecureClient => {
   switch (operation.serviceType) {
     case 'common': {
-      const client: XMLRPCClient = xmlrpc.createClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/common'
-      })
-
-      const insecureClient: InsecureClient = {
-        kind: 'insecure',
-        client
+      switch (operation.path) {
+        case '/web/webclient/version_info': {
+          const data = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            params: {}
+          })
+          return {
+            kind: 'insecure',
+            client: fetch(`http://${clientOptions.host}${operation.path}`, {
+              method: 'POST',
+              body: data,
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'Content-Length': data.length.toString()
+              }
+            })
+          }
+        }
+        case '/web/session/authenticate': {
+          const data = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'call',
+            params: operation.params
+          })
+          return {
+            kind: 'insecure',
+            client: fetch(`http://${clientOptions.host}${operation.path}`, {
+              method: 'POST',
+              body: data,
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'Content-Length': data.length.toString()
+              }
+            })
+          }
+        }
+        default:
+          const exhaustiveCheck: never = operation
+          const neverClient: InsecureClient = {} as InsecureClient
+          return neverClient
       }
-
-      return insecureClient
     }
     case 'db': {
-      const client: XMLRPCClient = xmlrpc.createClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/common'
+      const data = JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'call',
+        params: operation.params
       })
-
-      const insecureClient: InsecureClient = {
+      return {
         kind: 'insecure',
-        client
+        client: fetch(`http://${clientOptions.host}${operation.path}`, {
+          method: 'POST',
+          body: data,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Content-Length': data.length.toString()
+          }
+        })
       }
-
-      return insecureClient
     }
     case 'model': {
-      const client: XMLRPCClient = xmlrpc.createClient({
-        ...clientOptions,
-        path: '/xmlrpc/2/common'
+      const data = JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'call',
+        params: operation.params
       })
-
-      const insecureClient: InsecureClient = {
+      return {
         kind: 'insecure',
-        client
+        client: fetch(`http://${clientOptions.host}${operation.path}`, {
+          method: 'POST',
+          body: data,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'Content-Length': data.length.toString(),
+            Cookie: `session_id=${operation.sessionToken}`
+          }
+        })
       }
-
-      return insecureClient
     }
-    /* istanbul ignore next */
     default:
       const exhaustiveCheck: never = operation
       const neverClient: InsecureClient = {} as InsecureClient
@@ -202,98 +290,136 @@ const createClient = ({ clientOptions, operation }: CreateClientParams): Client 
 // End of client
 
 // Start of Service error
-type RPC_FAULT_CODE_CLIENT_ERROR = 1 // indistinguishable from app. error.
-type RPC_FAULT_CODE_APPLICATION_ERROR = 1
-type RPC_FAULT_CODE_WARNING = 2
-type RPC_FAULT_CODE_ACCESS_DENIED = 3
-type RPC_FAULT_CODE_ACCESS_ERROR = 4
+type UserErrorException = 'user_error'
+type WarningException = 'warning'
+type AccessErrorException = 'access_error'
+type MissingErrorException = 'missing_error'
+type AccessDeniedException = 'access_denied'
+type ValidationErrorException = 'validation_error'
+type ExceptORMException = 'except_orm'
 
-const RPC_FAULT_CODE_CLIENT_ERROR: RPC_FAULT_CODE_CLIENT_ERROR = 1
-const RPC_FAULT_CODE_APPLICATION_ERROR: RPC_FAULT_CODE_APPLICATION_ERROR = 1
-const RPC_FAULT_CODE_WARNING: RPC_FAULT_CODE_WARNING = 2
-const RPC_FAULT_CODE_ACCESS_DENIED: RPC_FAULT_CODE_ACCESS_DENIED = 3
-const RPC_FAULT_CODE_ACCESS_ERROR: RPC_FAULT_CODE_ACCESS_ERROR = 4
+const UserErrorException: UserErrorException = 'user_error'
+const WarningException: WarningException = 'warning'
+const AccessErrorException: AccessErrorException = 'access_error'
+const MissingErrorException: MissingErrorException = 'missing_error'
+const AccessDeniedException: AccessDeniedException = 'access_denied'
+const ValidationErrorException: ValidationErrorException = 'validation_error'
+const ExceptORMException: ExceptORMException = 'except_orm'
 
-export interface XMLRPCClientError {
-  body: any
-  faultCode:
-    | RPC_FAULT_CODE_CLIENT_ERROR
-    | RPC_FAULT_CODE_APPLICATION_ERROR
-    | RPC_FAULT_CODE_WARNING
-    | RPC_FAULT_CODE_ACCESS_DENIED
-    | RPC_FAULT_CODE_ACCESS_ERROR
-  faultString: string
-  req: any
-  res: any
+type OdooExceptionType =
+  | UserErrorException
+  | WarningException
+  | AccessErrorException
+  | MissingErrorException
+  | AccessDeniedException
+  | ValidationErrorException
+  | ExceptORMException
+
+export interface OdooJSONRPCError {
+  message: string
+  data: {
+    message: string
+    exception_type: OdooExceptionType
+    debug: string
+    name: string
+    arguments: Array<string>
+  }
 }
 
 interface BaseServiceError {
+  debug: string
   message: string
 }
 
-interface ApplicationError extends BaseServiceError {
-  kind: 'application'
+interface UserError extends BaseServiceError {
+  kind: 'userError'
 }
 
 interface Warning extends BaseServiceError {
   kind: 'warning'
 }
 
-interface AccessDenied extends BaseServiceError {
-  kind: 'accessDenied'
-}
-
 interface AccessError extends BaseServiceError {
   kind: 'accessError'
 }
 
-interface UnknownError extends BaseServiceError {
-  kind: 'unknownError'
+interface MissingError extends BaseServiceError {
+  kind: 'missingError'
+}
+
+interface AccessDenied extends BaseServiceError {
+  kind: 'accessDenied'
+}
+
+interface ValidationError extends BaseServiceError {
+  kind: 'validationError'
+}
+
+interface ExceptORM extends BaseServiceError {
+  kind: 'exceptORM'
 }
 
 export type ServiceOperationError =
-  | ApplicationError
+  | UserError
   | Warning
-  | AccessDenied
   | AccessError
-  | UnknownError // Odoo is not going to emit this error but just in case.
+  | MissingError
+  | AccessDenied
+  | ValidationError
+  | ExceptORM
 
 type CreateServiceOperationErrorParams = {
-  error: XMLRPCClientError
+  error: OdooJSONRPCError
 }
 
 export const createServiceOperationError = ({
   error
 }: CreateServiceOperationErrorParams): ServiceOperationError => {
-  switch (error.faultCode) {
-    case RPC_FAULT_CODE_APPLICATION_ERROR:
+  const errorInformation = {
+    debug: error.data.debug,
+    message: error.data.message
+  }
+  switch (error.data.exception_type) {
+    case UserErrorException:
       return {
-        kind: 'application',
-        message: error.faultString
+        kind: 'userError',
+        ...errorInformation
       }
-    case RPC_FAULT_CODE_WARNING:
+    case WarningException:
       return {
         kind: 'warning',
-        message: error.faultString
+        ...errorInformation
       }
-    case RPC_FAULT_CODE_ACCESS_DENIED:
-      return {
-        kind: 'accessDenied',
-        message: error.faultString
-      }
-    case RPC_FAULT_CODE_ACCESS_ERROR:
+    case AccessErrorException:
       return {
         kind: 'accessError',
-        message: error.faultString
+        ...errorInformation
+      }
+    case MissingErrorException:
+      return {
+        kind: 'missingError',
+        ...errorInformation
+      }
+    case AccessDeniedException:
+      return {
+        kind: 'accessDenied',
+        ...errorInformation
+      }
+    case ValidationErrorException:
+      return {
+        kind: 'validationError',
+        ...errorInformation
+      }
+    case ExceptORMException:
+      return {
+        kind: 'exceptORM',
+        ...errorInformation
       }
     /* istanbul ignore next */
     default:
-      const exhaustiveCheck: never = error.faultCode
-      return {
-        kind: 'unknownError',
-        message:
-          'An unknown error occured! Odoo might have introduced a new kind of error, please kindly check there.'
-      }
+      const exhaustiveCheck: never = error.data.exception_type
+      const neverOperationError: ServiceOperationError = {} as ServiceOperationError
+      return neverOperationError
   }
 }
 
@@ -323,467 +449,41 @@ interface ModelService extends BaseService {
   operation: ModelServiceOperation
 }
 
-type CreateModelServiceParams = {
-  credentials: ModelServiceCredentials
-  operation: ModelServiceOperation
+type CreateServiceParams = {
+  operation: ServiceOperation
   clientOptions: ClientOptions
-  mockMethodCall?: (
-    firstArg: any,
-    secondArg: any,
-    callback: (err: string, result: any) => void
-  ) => {}
 }
 
-export const createModelService = ({
-  credentials,
+export const createService = ({
   operation,
-  clientOptions,
-  mockMethodCall
-}: CreateModelServiceParams): ModelService => {
+  clientOptions
+}: CreateServiceParams): Stream<Either<ServiceOperationError, ServiceOperationResult>> => {
   const client = createClient({ clientOptions, operation })
+  return xs
+    .fromPromise(client.client)
+    .map(result => {
+      return xs.fromPromise(result.json())
+    })
+    .flatten()
+    .map(result => {
+      /* istanbul ignore next */
+      if (result.result) {
+        return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
+      } else if (result.error) {
+      /* istanbul ignore next */
+        return left(
+          createServiceOperationError({
+            error: result.error
+          })
+        ) as Either<ServiceOperationError, ServiceOperationResult>
+      }
+      /* istanbul ignore next */
 
-  /* istanbul ignore next */
-  if (mockMethodCall) {
-    client.client.methodCall = mockMethodCall
-  }
-
-  return {
-    kind: 'model',
-    credentials,
-    client,
-    operation
-  }
-}
-
-type CreateCommonServiceParams = {
-  operation: CommonServiceOperation
-  clientOptions: ClientOptions
-  mockMethodCall?: (
-    firstArg: any,
-    secondArg: any,
-    callback: (err: string, result: any) => void
-  ) => {}
-}
-
-export const createCommonService = ({
-  operation,
-  clientOptions,
-  mockMethodCall
-}: CreateCommonServiceParams): CommonService => {
-  const client = createClient({ clientOptions, operation })
-
-  /* istanbul ignore next */
-  if (mockMethodCall) {
-    client.client.methodCall = mockMethodCall
-  }
-
-  return {
-    kind: 'common',
-    client,
-    operation
-  }
-}
-
-type CreateDBServiceParams = {
-  operation: DBServiceOperation
-  clientOptions: ClientOptions
-  mockMethodCall?: (
-    firstArg: any,
-    secondArg: any,
-    callback: (err: string, result: any) => void
-  ) => {}
-}
-
-export const createDBService = ({
-  operation,
-  clientOptions,
-  mockMethodCall
-}: CreateDBServiceParams): DBService => {
-  const client = createClient({ clientOptions, operation })
-
-  /* istanbul ignore next */
-  if (mockMethodCall) {
-    client.client.methodCall = mockMethodCall
-  }
-
-  return {
-    kind: 'db',
-    client,
-    operation
-  }
-}
-
-type ExecuteModelServiceParams = {
-  service: ModelService
-  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
-  callback: any
-}
-
-// Ignore test because this is used only inside the executeService which is tested
-/* istanbul ignore next */
-const executeModelService = ({ service, callback }: ExecuteModelServiceParams): void => {
-  switch (service.operation.kind) {
-    case 'create': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'create', [
-          [service.operation.fieldsValues]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'delete': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'unlink', [
-          service.operation.ids
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'search': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(
-          service.operation.modelName,
-          'search',
-          [[service.operation.domain]],
-          service.operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'searchCount': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'search_count', [
-          [service.operation.domain]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'searchRead': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(
-          service.operation.modelName,
-          'search_read',
-          [[service.operation.domain]],
-          service.operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'nameSearch': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(
-          service.operation.modelName,
-          'name_search',
-          [[service.operation.nameToSearch]],
-          service.operation.optionalParameters
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'read': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(
-          service.operation.modelName,
-          'read',
-          [service.operation.ids],
-          service.operation.fields
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'update': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'write', [
-          [service.operation.ids].concat(service.operation.fieldsValues)
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'defaultGet': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'default_get', [
-          [service.operation.fieldsNames]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'fieldsGet': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'fields_get', [
-          [service.operation.fieldsNames].concat(service.operation.attributes)
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'nameGet': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'name_get', [
-          [service.operation.ids]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'onChange': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(service.operation.modelName, 'onchange', [
-          [
-            [],
-            service.operation.values,
-            service.operation.fieldName,
-            service.operation.fieldOnChange
-          ]
-        ]),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'callMethod': {
-      service.client.client.methodCall(
-        'execute_kw',
-        Object.values(service.credentials).concat(
-          service.operation.modelName,
-          service.operation.methodName,
-          service.operation.args,
-          service.operation.kwargs
-        ),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    /* istanbul ignore next */
-    default:
-      const exhaustiveCheck: never = service.operation
-  }
-  return
-}
-
-type ExecuteCommonServiceParams = {
-  service: CommonService
-  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
-  callback: any
-}
-
-// Ignore test because this is used only inside the executeService which is tested
-/* istanbul ignore next */
-const executeCommonService = ({ service, callback }: ExecuteCommonServiceParams): void => {
-  switch (service.operation.kind) {
-    case 'authenticate': {
-      service.client.client.methodCall(
-        'authenticate',
-        Object.values(service.operation.credentials),
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'getVersion': {
-      service.client.client.methodCall('version', [], (error: XMLRPCClientError, value: any) => {
-        if (error) {
-          callback(left(createServiceOperationError({ error })))
-        } else {
-          callback(right(value))
-        }
-      })
-      return
-    }
-    /* istanbul ignore next */
-    default:
-      const exhaustiveCheck: never = service.operation
-  }
-  return
-}
-
-type ExecuteDBServiceParams = {
-  service: DBService
-  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
-  callback: any
-}
-
-// Ignore test because this is used only inside the executeService which is tested
-/* istanbul ignore next */
-const executeDBService = ({ service, callback }: ExecuteDBServiceParams): void => {
-  switch (service.operation.kind) {
-    case 'dbExist': {
-      service.client.client.methodCall(
-        'db_exist',
-        [service.operation.dbName],
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    }
-    case 'listDB':
-      service.client.client.methodCall('list', [], (error: XMLRPCClientError, value: any) => {
-        if (error) {
-          callback(left(createServiceOperationError({ error })))
-        } else {
-          callback(right(value))
-        }
-      })
-      return
-    case 'createDB':
-      service.client.client.methodCall(
-        'create_database',
-        [
-          service.operation.adminPassword,
-          service.operation.dbName,
-          service.operation.demo,
-          service.operation.lang,
-          service.operation.userPassword,
-          service.operation.login,
-          service.operation.countryCode
-        ],
-        (error: XMLRPCClientError, value: any) => {
-          if (error) {
-            callback(left(createServiceOperationError({ error })))
-          } else {
-            callback(right(value))
-          }
-        }
-      )
-      return
-    /* istanbul ignore next */
-    default:
-      const exhaustiveCheck: never = service.operation
-  }
-  return
-}
-
-type ExecuteServiceParams = {
-  service: Service
-  // callback: (result: Either<ServiceOperationError, ServiceOperationResult>) => any
-  callback: any
-}
-
-export const executeService = ({ service, callback }: ExecuteServiceParams): void => {
-  switch (service.kind) {
-    case 'common': {
-      executeCommonService({ service, callback })
-      return
-    }
-    case 'db': {
-      executeDBService({ service, callback })
-      return
-    }
-    case 'model': {
-      executeModelService({ service, callback })
-      return
-    }
-    /* istanbul ignore next */
-    default:
-      const exhaustiveCheck: never = service
-  }
+      return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
+    })
+    .map(result => {
+      return result
+    })
 }
 
 interface AuthenticateCredentials {
@@ -822,156 +522,180 @@ export const createAuthenticateCredentials = ({
   return authenticateCredentials
 }
 
-type CreateModelServiceCredentialsParams = {
-  db: string
-  uid: number
-  password: string
-}
-
-export const createModelServiceCredentials = ({
-  db,
-  uid,
-  password
-}: CreateModelServiceCredentialsParams): ModelServiceCredentials => {
-  const modelServiceCredentials: ModelServiceCredentials = {
-    db,
-    uid,
-    password
-  }
-
-  return modelServiceCredentials
-}
-
 interface BaseCommonServiceOperation {
   serviceType: 'common'
 }
 
 interface BaseModelServiceOperation {
   serviceType: 'model'
+  path: '/web/dataset/call_kw'
+  sessionToken: string
 }
 
 interface BaseDBServiceOperation {
   serviceType: 'db'
+  path: '/jsonrpc'
 }
 
 interface Authenticate extends BaseCommonServiceOperation {
-  kind: 'authenticate'
-  credentials: AuthenticateCredentials
+  // kind: 'authenticate'
+  // credentials: AuthenticateCredentials
+  params: {
+    db: string
+    login: string
+    password: string
+  }
+  path: '/web/session/authenticate'
 }
 
 interface GetVersion extends BaseCommonServiceOperation {
-  kind: 'getVersion'
+  // kind: 'getVersion'
+  path: '/web/webclient/version_info'
 }
 
 interface Create extends BaseModelServiceOperation {
-  kind: 'create'
-  modelName: string
-  fieldsValues: any
+  params: {
+    model: string
+    method: 'create'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface Delete extends BaseModelServiceOperation {
-  kind: 'delete'
-  ids: Array<Array<number>>
-  modelName: string
+  params: {
+    model: string
+    method: 'unlink'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface Read extends BaseModelServiceOperation {
-  kind: 'read'
-  fields?: any
-  ids: Array<Array<number>>
-  modelName: string
+  params: {
+    model: string
+    method: 'read'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface Search extends BaseModelServiceOperation {
-  kind: 'search'
-  domain: any
-  modelName: string
-  optionalParameters?: any
+  params: {
+    model: string
+    method: 'search'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface SearchCount extends BaseModelServiceOperation {
-  kind: 'searchCount'
-  domain: any
-  modelName: string
+  params: {
+    model: string
+    method: 'search_count'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
-interface SearchRead extends BaseModelServiceOperation {
-  kind: 'searchRead'
-  domain: any
-  modelName: string
-  optionalParameters?: any
+interface SearchRead
+  extends Pick<BaseModelServiceOperation, Exclude<keyof BaseModelServiceOperation, 'path'>> {
+  params: {
+    model: string
+    domain: Array<any>
+    fields?: Array<string>
+    offset?: number
+    limit: number
+    sort?: string
+  }
+  path: '/web/dataset/search_read'
 }
 
 interface Update extends BaseModelServiceOperation {
-  kind: 'update'
-  fieldsValues: any
-  ids: Array<number>
-  modelName: string
+  params: {
+    model: string
+    method: 'write'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface NameSearch extends BaseModelServiceOperation {
-  kind: 'nameSearch'
-  modelName: string
-  nameToSearch: string
-  optionalParameters?: any
+  params: {
+    model: string
+    method: 'name_search'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface DefaultGet extends BaseModelServiceOperation {
-  kind: 'defaultGet'
-  modelName: string
-  fieldsNames: Array<string>
+  params: {
+    model: string
+    method: 'default_get'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface FieldsGet extends BaseModelServiceOperation {
-  kind: 'fieldsGet'
-  modelName: string
-  fieldsNames?: Array<string>
-  attributes?: Array<string>
+  params: {
+    model: string
+    method: 'fields_get'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface NameGet extends BaseModelServiceOperation {
-  kind: 'nameGet'
-  modelName: string
-  ids: Array<number>
+  params: {
+    model: string
+    method: 'name_get'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface OnChange extends BaseModelServiceOperation {
-  kind: 'onChange'
-  modelName: string
-  values: any
-  fieldName: Array<string>
-  fieldOnChange: any
+  params: {
+    model: string
+    method: 'onchange'
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface CallMethod extends BaseModelServiceOperation {
-  kind: 'callMethod'
-  modelName: string
-  methodName: string
-  args: Array<any>
-  kwargs?: any
+  params: {
+    model: string
+    method: string
+    args: Array<any>
+    kwargs: any
+  }
 }
 
 interface DBExist extends BaseDBServiceOperation {
-  kind: 'dbExist'
-  dbName: string
+  params: {
+    service: 'db'
+    method: 'db_exist'
+    args: Array<any>
+  }
 }
 
 interface ListDB extends BaseDBServiceOperation {
-  kind: 'listDB'
+  params: {
+    service: 'db'
+    method: 'list'
+    args: []
+  }
 }
 
-interface AuthorizedDBServiceOperation extends BaseDBServiceOperation {
-  adminPassword: string
-}
-
-interface CreateDB extends AuthorizedDBServiceOperation {
-  kind: 'createDB'
-  dbName: string
-  demo: boolean
-  lang: string
-  userPassword: string
-  login: string
-  countryCode: string
+interface CreateDB extends BaseDBServiceOperation {
+  params: {
+    service: 'db'
+    method: 'create_database'
+    args: Array<any>
+  }
 }
 
 export type ServiceOperationResult = any
@@ -996,15 +720,19 @@ type ModelServiceOperation =
 
 type DBServiceOperation = DBExist | ListDB | CreateDB
 
-type CreateAuthenticateParams = {
+interface CreateAuthenticateParams {
   credentials: AuthenticateCredentials
 }
 
 export const createAuthenticate = ({ credentials }: CreateAuthenticateParams): Authenticate => {
   const authenticate: Authenticate = {
-    kind: 'authenticate',
     serviceType: 'common',
-    credentials
+    params: {
+      db: credentials.db,
+      login: credentials.username,
+      password: credentials.password
+    },
+    path: '/web/session/authenticate'
   }
 
   return authenticate
@@ -1012,189 +740,270 @@ export const createAuthenticate = ({ credentials }: CreateAuthenticateParams): A
 
 export const createGetVersion = (): GetVersion => {
   const getVersion: GetVersion = {
-    kind: 'getVersion',
-    serviceType: 'common'
+    serviceType: 'common',
+    path: '/web/webclient/version_info'
   }
 
   return getVersion
 }
 
-type CreateCreateParams = {
+interface BaseModelServiceOperationParams {
   modelName: string
+  sessionToken: string
+}
+
+interface CreateCreateParams extends BaseModelServiceOperationParams {
   fieldsValues: any
 }
 
-export const createCreate = ({ modelName, fieldsValues }: CreateCreateParams): Create => {
+export const createCreate = ({
+  modelName,
+  fieldsValues,
+  sessionToken
+}: CreateCreateParams): Create => {
   const create: Create = {
-    kind: 'create',
     serviceType: 'model',
-    fieldsValues: fieldsValues,
-    modelName: modelName
+    path: '/web/dataset/call_kw',
+    params: {
+      args: [fieldsValues],
+      kwargs: {},
+      method: 'create',
+      model: modelName
+    },
+    sessionToken
   }
 
   return create
 }
 
-type CreateDeleteParams = {
-  modelName: string
-  ids: Array<Array<number>>
+interface CreateDeleteParams extends BaseModelServiceOperationParams {
+  ids: Array<number>
 }
 
-export const createDelete = ({ modelName, ids }: CreateDeleteParams): Delete => {
+export const createDelete = ({ modelName, ids, sessionToken }: CreateDeleteParams): Delete => {
   const unlink: Delete = {
-    kind: 'delete',
     serviceType: 'model',
-    ids: ids,
-    modelName: modelName
+    path: '/web/dataset/call_kw',
+    params: {
+      args: [ids],
+      kwargs: {},
+      method: 'unlink',
+      model: modelName
+    },
+    sessionToken
   }
 
   return unlink
 }
 
-type CreateSearchParams = {
-  modelName: string
-  searchDomain: any
-  optionalParameters: any
+interface CreateSearchParams extends BaseModelServiceOperationParams {
+  domain: Array<any>
+  offset?: number
+  limit?: number
+  order?: string
+  count?: boolean
 }
 
 export const createSearch = ({
   modelName,
-  searchDomain,
-  optionalParameters
+  domain,
+  /* istanbul ignore next */
+  offset = 0,
+  /* istanbul ignore next */
+  limit = 10,
+  order,
+  /* istanbul ignore next */
+  count = false,
+  sessionToken
 }: CreateSearchParams): Search => {
   const search: Search = {
-    kind: 'search',
     serviceType: 'model',
-    domain: searchDomain,
-    modelName: modelName,
-    optionalParameters: optionalParameters
+    params: {
+      args: [domain, offset, limit, order, count],
+      kwargs: {},
+      method: 'search',
+      model: modelName
+    },
+    sessionToken,
+    path: '/web/dataset/call_kw'
   }
 
   return search
 }
 
-type CreateSearchCountParams = {
-  modelName: string
-  searchDomain: any
+interface CreateSearchCountParams extends BaseModelServiceOperationParams {
+  searchDomain: Array<any>
 }
 
 export const createSearchCount = ({
   modelName,
-  searchDomain
+  searchDomain,
+  sessionToken
 }: CreateSearchCountParams): SearchCount => {
   const searchCount: SearchCount = {
-    kind: 'searchCount',
     serviceType: 'model',
-    domain: searchDomain,
-    modelName: modelName
+    params: {
+      args: [searchDomain],
+      kwargs: {},
+      method: 'search_count',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return searchCount
 }
 
-type CreateReadParams = {
+interface CreateReadParams extends BaseModelServiceOperationParams {
   modelName: string
-  ids: Array<Array<number>>
+  ids: Array<number>
   fields?: Array<string>
 }
 
-export const createRead = ({ modelName, ids, fields = [] }: CreateReadParams): Read => {
+export const createRead = ({
+  modelName,
+  ids,
+  fields = [],
+  sessionToken
+}: CreateReadParams): Read => {
   const read: Read = {
-    kind: 'read',
     serviceType: 'model',
-    modelName: modelName,
-    ids: ids,
-    fields: {
-      fields: fields
-    }
+    params: {
+      args: [ids, fields],
+      kwargs: {},
+      method: 'read',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return read
 }
 
-type CreateSearchReadParams = {
-  modelName: string
-  searchDomain: any
-  optionalParameters: any
+interface CreateSearchReadParams extends BaseModelServiceOperationParams {
+  domain: Array<any>
+  fields?: Array<string>
+  limit?: number
+  offset?: number
+  sort?: string
 }
 
 export const createSearchRead = ({
   modelName,
-  searchDomain,
-  optionalParameters
+  domain,
+  /* istanbul ignore next */
+  fields = [],
+  /* istanbul ignore next */
+  limit = 10,
+  /* istanbul ignore next */
+  offset = 0,
+  /* istanbul ignore next */
+  sort = '',
+  sessionToken
 }: CreateSearchReadParams): SearchRead => {
   const searchRead: SearchRead = {
-    kind: 'searchRead',
     serviceType: 'model',
-    domain: searchDomain,
-    modelName: modelName,
-    optionalParameters: optionalParameters
+    params: {
+      model: modelName,
+      fields,
+      offset,
+      limit,
+      domain,
+      sort
+    },
+    path: '/web/dataset/search_read',
+    sessionToken
   }
 
   return searchRead
 }
 
-type CreateNameSearchParams = {
-  modelName: string
+interface CreateNameSearchParams extends BaseModelServiceOperationParams {
   nameToSearch: string
-  optionalParameters: any
+  limit?: number
+  operator?: string
+  searchDomain?: Array<any>
 }
 
 export const createNameSearch = ({
   modelName,
   nameToSearch,
-  optionalParameters
+  /* istanbul ignore next */
+  limit = 100,
+  /* istanbul ignore next */
+  operator = 'ilike',
+  /* istanbul ignore next */
+  searchDomain = [],
+  sessionToken
 }: CreateNameSearchParams): NameSearch => {
   const nameSearch: NameSearch = {
-    kind: 'nameSearch',
     serviceType: 'model',
-    modelName: modelName,
-    nameToSearch: nameToSearch,
-    optionalParameters: optionalParameters
+    params: {
+      args: [nameToSearch, searchDomain, operator, limit],
+      kwargs: {},
+      method: 'name_search',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return nameSearch
 }
 
-type CreateUpdateParams = {
-  modelName: string
-  ids: Array<number>
+interface CreateUpdateParams extends BaseModelServiceOperationParams {
   fieldsValues: any
+  ids: Array<number>
 }
 
-export const createUpdate = ({ modelName, ids, fieldsValues }: CreateUpdateParams): Update => {
+export const createUpdate = ({
+  modelName,
+  ids,
+  fieldsValues,
+  sessionToken
+}: CreateUpdateParams): Update => {
   const update: Update = {
-    kind: 'update',
     serviceType: 'model',
-    modelName: modelName,
-    fieldsValues: fieldsValues,
-    ids: ids
+    params: {
+      args: [ids, fieldsValues],
+      kwargs: {},
+      method: 'write',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return update
 }
 
-type CreateDefaultGetParams = {
-  modelName: string
+interface CreateDefaultGetParams extends BaseModelServiceOperationParams {
   fieldsNames: Array<string>
 }
 
 export const createDefaultGet = ({
   modelName,
-  fieldsNames
+  fieldsNames,
+  sessionToken
 }: CreateDefaultGetParams): DefaultGet => {
   const defaultGet: DefaultGet = {
-    kind: 'defaultGet',
     serviceType: 'model',
-    modelName: modelName,
-    fieldsNames: fieldsNames
+    params: {
+      args: [fieldsNames],
+      kwargs: {},
+      method: 'default_get',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return defaultGet
 }
 
-type CreateFieldsGetParams = {
-  modelName: string
+interface CreateFieldsGetParams extends BaseModelServiceOperationParams {
   fieldsNames?: Array<string>
   attributes?: Array<string>
 }
@@ -1202,36 +1011,47 @@ type CreateFieldsGetParams = {
 export const createFieldsGet = ({
   modelName,
   fieldsNames = [],
-  attributes
+  /* istanbul ignore next */
+  attributes = [],
+  sessionToken
 }: CreateFieldsGetParams): FieldsGet => {
   const fieldsGet: FieldsGet = {
-    kind: 'fieldsGet',
     serviceType: 'model',
-    modelName: modelName,
-    fieldsNames: fieldsNames,
-    attributes: attributes
+    params: {
+      args: [fieldsNames, attributes],
+      kwargs: {},
+      method: 'fields_get',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return fieldsGet
 }
 
-type CreateNameGetParams = {
+interface CreateNameGetParams extends BaseModelServiceOperationParams {
   modelName: string
   ids: Array<number>
 }
 
-export const createNameGet = ({ modelName, ids }: CreateNameGetParams): NameGet => {
+export const createNameGet = ({ modelName, ids, sessionToken }: CreateNameGetParams): NameGet => {
   const nameGet: NameGet = {
-    kind: 'nameGet',
     serviceType: 'model',
-    modelName: modelName,
-    ids: ids
+    params: {
+      args: [ids],
+      kwargs: {},
+      method: 'name_get',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return nameGet
 }
 
-type CreateOnChangeParams = {
+interface CreateOnChangeParams extends BaseModelServiceOperationParams {
   modelName: string
   values: any
   fieldName: Array<string>
@@ -1242,21 +1062,25 @@ export const createOnChange = ({
   modelName,
   values,
   fieldName,
-  fieldOnChange
+  fieldOnChange,
+  sessionToken
 }: CreateOnChangeParams): OnChange => {
   const onChange: OnChange = {
-    kind: 'onChange',
     serviceType: 'model',
-    modelName: modelName,
-    values: values,
-    fieldName: fieldName,
-    fieldOnChange: fieldOnChange
+    params: {
+      args: [[], values, fieldName, fieldOnChange],
+      kwargs: {},
+      method: 'onchange',
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return onChange
 }
 
-type CreateCallMethodParams = {
+interface CreateCallMethodParams extends BaseModelServiceOperationParams {
   modelName: string
   methodName: string
   args: Array<any>
@@ -1267,15 +1091,19 @@ export const createCallMethod = ({
   modelName,
   methodName,
   args,
-  kwargs
+  kwargs,
+  sessionToken
 }: CreateCallMethodParams): CallMethod => {
   const callMethod: CallMethod = {
-    kind: 'callMethod',
     serviceType: 'model',
-    modelName: modelName,
-    methodName: methodName,
-    args: args,
-    kwargs: kwargs
+    params: {
+      args,
+      kwargs: {},
+      method: methodName,
+      model: modelName
+    },
+    path: '/web/dataset/call_kw',
+    sessionToken
   }
 
   return callMethod
@@ -1287,9 +1115,13 @@ type CreateDBExistParams = {
 
 export const createDBExist = ({ dbName }: CreateDBExistParams): DBExist => {
   const dbExist: DBExist = {
-    kind: 'dbExist',
     serviceType: 'db',
-    dbName
+    params: {
+      args: [dbName],
+      method: 'db_exist',
+      service: 'db'
+    },
+    path: '/jsonrpc'
   }
 
   return dbExist
@@ -1297,8 +1129,13 @@ export const createDBExist = ({ dbName }: CreateDBExistParams): DBExist => {
 
 export const createListDB = (): ListDB => {
   const listDB: ListDB = {
-    kind: 'listDB',
-    serviceType: 'db'
+    serviceType: 'db',
+    params: {
+      args: [],
+      method: 'list',
+      service: 'db'
+    },
+    path: '/jsonrpc'
   }
 
   return listDB
@@ -1324,15 +1161,13 @@ export const createDB = ({
   countryCode
 }: CreateCreateDBParams): CreateDB => {
   const createDB: CreateDB = {
-    kind: 'createDB',
     serviceType: 'db',
-    adminPassword,
-    dbName,
-    demo,
-    lang,
-    userPassword,
-    login,
-    countryCode
+    params: {
+      args: [adminPassword, dbName, demo, lang, userPassword, login, countryCode],
+      method: 'create_database',
+      service: 'db'
+    },
+    path: '/jsonrpc'
   }
 
   return createDB
