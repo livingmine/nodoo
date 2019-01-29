@@ -468,9 +468,13 @@ export const createService = ({
     .map(result => {
       /* istanbul ignore next */
       if (result.result) {
+        /* tslint:disable:no-unnecessary-type-assertion */
+
         return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
+        /* istanbul ignore next */
       } else if (result.error) {
-      /* istanbul ignore next */
+        /* tslint:disable:no-unnecessary-type-assertion */
+
         return left(
           createServiceOperationError({
             error: result.error
@@ -478,7 +482,6 @@ export const createService = ({
         ) as Either<ServiceOperationError, ServiceOperationResult>
       }
       /* istanbul ignore next */
-
       return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
     })
     .map(result => {
