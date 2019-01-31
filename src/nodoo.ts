@@ -297,6 +297,7 @@ type MissingErrorException = 'missing_error'
 type AccessDeniedException = 'access_denied'
 type ValidationErrorException = 'validation_error'
 type ExceptORMException = 'except_orm'
+type AuthenticationException = 'authentication_error'
 
 const UserErrorException: UserErrorException = 'user_error'
 const WarningException: WarningException = 'warning'
@@ -305,6 +306,9 @@ const MissingErrorException: MissingErrorException = 'missing_error'
 const AccessDeniedException: AccessDeniedException = 'access_denied'
 const ValidationErrorException: ValidationErrorException = 'validation_error'
 const ExceptORMException: ExceptORMException = 'except_orm'
+const AuthenticationException: AuthenticationException = 'authentication_error'
+
+type OdooStatusCode = 100 | 200
 
 type OdooExceptionType =
   | UserErrorException
@@ -314,8 +318,10 @@ type OdooExceptionType =
   | AccessDeniedException
   | ValidationErrorException
   | ExceptORMException
+  | AuthenticationException
 
 export interface OdooJSONRPCError {
+  code: OdooStatusCode
   message: string
   data: {
     message: string
@@ -359,6 +365,10 @@ interface ExceptORM extends BaseServiceError {
   kind: 'exceptORM'
 }
 
+interface AuthenticationError extends BaseServiceError {
+  kind: 'authenticationError'
+}
+
 export type ServiceOperationError =
   | UserError
   | Warning
@@ -367,10 +377,42 @@ export type ServiceOperationError =
   | AccessDenied
   | ValidationError
   | ExceptORM
+  | AuthenticationError
 
 type CreateServiceOperationErrorParams = {
   error: OdooJSONRPCError
 }
+
+export const statusCodeToExceptionType = (
+  statusCode: OdooStatusCode,
+  exceptionType: OdooExceptionType
+): OdooExceptionType => {
+  switch (statusCode) {
+    case 100: {
+      return 'authentication_error'
+    }
+    case 200: {
+      return exceptionType
+    }
+    /* istanbul ignore next */
+    default:
+      const exhaustiveCheck: never = statusCode
+      return exceptionType
+  }
+}
+
+const addExceptionTypeToOdooJSONRPCError = ({
+  code,
+  data,
+  ...rest
+}: OdooJSONRPCError): OdooJSONRPCError => ({
+  ...rest,
+  code,
+  data: {
+    ...data,
+    exception_type: statusCodeToExceptionType(code, data.exception_type)
+  }
+})
 
 export const createServiceOperationError = ({
   error
@@ -413,6 +455,11 @@ export const createServiceOperationError = ({
     case ExceptORMException:
       return {
         kind: 'exceptORM',
+        ...errorInformation
+      }
+    case AuthenticationException:
+      return {
+        kind: 'authenticationError',
         ...errorInformation
       }
     /* istanbul ignore next */
@@ -477,7 +524,7 @@ export const createService = ({
 
         return left(
           createServiceOperationError({
-            error: result.error
+            error: addExceptionTypeToOdooJSONRPCError(result.error)
           })
         ) as Either<ServiceOperationError, ServiceOperationResult>
       }
@@ -541,8 +588,7 @@ interface BaseDBServiceOperation {
 }
 
 interface Authenticate extends BaseCommonServiceOperation {
-  // kind: 'authenticate'
-  // credentials: AuthenticateCredentials
+  kind: 'authenticate'
   params: {
     db: string
     login: string
@@ -552,11 +598,13 @@ interface Authenticate extends BaseCommonServiceOperation {
 }
 
 interface GetVersion extends BaseCommonServiceOperation {
-  // kind: 'getVersion'
+  kind: 'getVersion'
   path: '/web/webclient/version_info'
 }
 
 interface Create extends BaseModelServiceOperation {
+  kind: 'create'
+
   params: {
     model: string
     method: 'create'
@@ -566,6 +614,8 @@ interface Create extends BaseModelServiceOperation {
 }
 
 interface Delete extends BaseModelServiceOperation {
+  kind: 'delete'
+
   params: {
     model: string
     method: 'unlink'
@@ -575,6 +625,8 @@ interface Delete extends BaseModelServiceOperation {
 }
 
 interface Read extends BaseModelServiceOperation {
+  kind: 'read'
+
   params: {
     model: string
     method: 'read'
@@ -584,6 +636,8 @@ interface Read extends BaseModelServiceOperation {
 }
 
 interface Search extends BaseModelServiceOperation {
+  kind: 'search'
+
   params: {
     model: string
     method: 'search'
@@ -593,6 +647,8 @@ interface Search extends BaseModelServiceOperation {
 }
 
 interface SearchCount extends BaseModelServiceOperation {
+  kind: 'searchCount'
+
   params: {
     model: string
     method: 'search_count'
@@ -603,6 +659,7 @@ interface SearchCount extends BaseModelServiceOperation {
 
 interface SearchRead
   extends Pick<BaseModelServiceOperation, Exclude<keyof BaseModelServiceOperation, 'path'>> {
+  kind: 'searchRead'
   params: {
     model: string
     domain: Array<any>
@@ -615,6 +672,7 @@ interface SearchRead
 }
 
 interface Update extends BaseModelServiceOperation {
+  kind: 'update'
   params: {
     model: string
     method: 'write'
@@ -624,6 +682,7 @@ interface Update extends BaseModelServiceOperation {
 }
 
 interface NameSearch extends BaseModelServiceOperation {
+  kind: 'nameSearch'
   params: {
     model: string
     method: 'name_search'
@@ -633,6 +692,7 @@ interface NameSearch extends BaseModelServiceOperation {
 }
 
 interface DefaultGet extends BaseModelServiceOperation {
+  kind: 'defaultGet'
   params: {
     model: string
     method: 'default_get'
@@ -642,6 +702,7 @@ interface DefaultGet extends BaseModelServiceOperation {
 }
 
 interface FieldsGet extends BaseModelServiceOperation {
+  kind: 'fieldsGet'
   params: {
     model: string
     method: 'fields_get'
@@ -651,6 +712,7 @@ interface FieldsGet extends BaseModelServiceOperation {
 }
 
 interface NameGet extends BaseModelServiceOperation {
+  kind: 'nameGet'
   params: {
     model: string
     method: 'name_get'
@@ -660,6 +722,7 @@ interface NameGet extends BaseModelServiceOperation {
 }
 
 interface OnChange extends BaseModelServiceOperation {
+  kind: 'onChange'
   params: {
     model: string
     method: 'onchange'
@@ -669,6 +732,7 @@ interface OnChange extends BaseModelServiceOperation {
 }
 
 interface CallMethod extends BaseModelServiceOperation {
+  kind: 'callMethod'
   params: {
     model: string
     method: string
@@ -678,6 +742,7 @@ interface CallMethod extends BaseModelServiceOperation {
 }
 
 interface DBExist extends BaseDBServiceOperation {
+  kind: 'dbExist'
   params: {
     service: 'db'
     method: 'db_exist'
@@ -686,6 +751,7 @@ interface DBExist extends BaseDBServiceOperation {
 }
 
 interface ListDB extends BaseDBServiceOperation {
+  kind: 'dbList'
   params: {
     service: 'db'
     method: 'list'
@@ -694,6 +760,7 @@ interface ListDB extends BaseDBServiceOperation {
 }
 
 interface CreateDB extends BaseDBServiceOperation {
+  kind: 'dbCreateDatabase'
   params: {
     service: 'db'
     method: 'create_database'
@@ -729,6 +796,7 @@ interface CreateAuthenticateParams {
 
 export const createAuthenticate = ({ credentials }: CreateAuthenticateParams): Authenticate => {
   const authenticate: Authenticate = {
+    kind: 'authenticate',
     serviceType: 'common',
     params: {
       db: credentials.db,
@@ -743,6 +811,7 @@ export const createAuthenticate = ({ credentials }: CreateAuthenticateParams): A
 
 export const createGetVersion = (): GetVersion => {
   const getVersion: GetVersion = {
+    kind: 'getVersion',
     serviceType: 'common',
     path: '/web/webclient/version_info'
   }
@@ -765,6 +834,7 @@ export const createCreate = ({
   sessionToken
 }: CreateCreateParams): Create => {
   const create: Create = {
+    kind: 'create',
     serviceType: 'model',
     path: '/web/dataset/call_kw',
     params: {
@@ -785,6 +855,7 @@ interface CreateDeleteParams extends BaseModelServiceOperationParams {
 
 export const createDelete = ({ modelName, ids, sessionToken }: CreateDeleteParams): Delete => {
   const unlink: Delete = {
+    kind: 'delete',
     serviceType: 'model',
     path: '/web/dataset/call_kw',
     params: {
@@ -820,6 +891,7 @@ export const createSearch = ({
   sessionToken
 }: CreateSearchParams): Search => {
   const search: Search = {
+    kind: 'search',
     serviceType: 'model',
     params: {
       args: [domain, offset, limit, order, count],
@@ -844,6 +916,7 @@ export const createSearchCount = ({
   sessionToken
 }: CreateSearchCountParams): SearchCount => {
   const searchCount: SearchCount = {
+    kind: 'searchCount',
     serviceType: 'model',
     params: {
       args: [searchDomain],
@@ -871,6 +944,7 @@ export const createRead = ({
   sessionToken
 }: CreateReadParams): Read => {
   const read: Read = {
+    kind: 'read',
     serviceType: 'model',
     params: {
       args: [ids, fields],
@@ -907,6 +981,7 @@ export const createSearchRead = ({
   sessionToken
 }: CreateSearchReadParams): SearchRead => {
   const searchRead: SearchRead = {
+    kind: 'searchRead',
     serviceType: 'model',
     params: {
       model: modelName,
@@ -942,6 +1017,7 @@ export const createNameSearch = ({
   sessionToken
 }: CreateNameSearchParams): NameSearch => {
   const nameSearch: NameSearch = {
+    kind: 'nameSearch',
     serviceType: 'model',
     params: {
       args: [nameToSearch, searchDomain, operator, limit],
@@ -968,6 +1044,7 @@ export const createUpdate = ({
   sessionToken
 }: CreateUpdateParams): Update => {
   const update: Update = {
+    kind: 'update',
     serviceType: 'model',
     params: {
       args: [ids, fieldsValues],
@@ -992,6 +1069,7 @@ export const createDefaultGet = ({
   sessionToken
 }: CreateDefaultGetParams): DefaultGet => {
   const defaultGet: DefaultGet = {
+    kind: 'defaultGet',
     serviceType: 'model',
     params: {
       args: [fieldsNames],
@@ -1019,6 +1097,7 @@ export const createFieldsGet = ({
   sessionToken
 }: CreateFieldsGetParams): FieldsGet => {
   const fieldsGet: FieldsGet = {
+    kind: 'fieldsGet',
     serviceType: 'model',
     params: {
       args: [fieldsNames, attributes],
@@ -1040,6 +1119,7 @@ interface CreateNameGetParams extends BaseModelServiceOperationParams {
 
 export const createNameGet = ({ modelName, ids, sessionToken }: CreateNameGetParams): NameGet => {
   const nameGet: NameGet = {
+    kind: 'nameGet',
     serviceType: 'model',
     params: {
       args: [ids],
@@ -1069,6 +1149,7 @@ export const createOnChange = ({
   sessionToken
 }: CreateOnChangeParams): OnChange => {
   const onChange: OnChange = {
+    kind: 'onChange',
     serviceType: 'model',
     params: {
       args: [[], values, fieldName, fieldOnChange],
@@ -1098,6 +1179,7 @@ export const createCallMethod = ({
   sessionToken
 }: CreateCallMethodParams): CallMethod => {
   const callMethod: CallMethod = {
+    kind: 'callMethod',
     serviceType: 'model',
     params: {
       args,
@@ -1118,6 +1200,7 @@ type CreateDBExistParams = {
 
 export const createDBExist = ({ dbName }: CreateDBExistParams): DBExist => {
   const dbExist: DBExist = {
+    kind: 'dbExist',
     serviceType: 'db',
     params: {
       args: [dbName],
@@ -1132,6 +1215,7 @@ export const createDBExist = ({ dbName }: CreateDBExistParams): DBExist => {
 
 export const createListDB = (): ListDB => {
   const listDB: ListDB = {
+    kind: 'dbList',
     serviceType: 'db',
     params: {
       args: [],
@@ -1164,6 +1248,7 @@ export const createDB = ({
   countryCode
 }: CreateCreateDBParams): CreateDB => {
   const createDB: CreateDB = {
+    kind: 'dbCreateDatabase',
     serviceType: 'db',
     params: {
       args: [adminPassword, dbName, demo, lang, userPassword, login, countryCode],

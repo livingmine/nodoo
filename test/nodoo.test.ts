@@ -22,7 +22,8 @@ import {
   createAuthenticateCredentials,
   createDB,
   createService,
-  OdooJSONRPCError
+  OdooJSONRPCError,
+  statusCodeToExceptionType
 } from '../src/nodoo'
 import { fieldsGetResult } from './methodsResult'
 
@@ -1300,8 +1301,18 @@ describe('DB Service Test', () => {
 })
 
 describe('Service Operation Error Preparation Test', () => {
+  it('can convert status code to the right exception type', done => {
+    const statusCode = 200
+    const exceptionType = 'access_error'
+
+    const generatedExceptionType = statusCodeToExceptionType(statusCode, exceptionType)
+    expect(generatedExceptionType).toBe('access_error')
+    done()
+  })
+
   it('can create an user error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1323,6 +1334,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create a warning error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1344,6 +1356,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create an access error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1365,6 +1378,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create a missing error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1386,6 +1400,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create an access denied error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1407,6 +1422,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create a validation error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
@@ -1428,6 +1444,7 @@ describe('Service Operation Error Preparation Test', () => {
 
   it('can create a except ORM error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
+      code: 200,
       data: {
         arguments: [],
         debug: '',
