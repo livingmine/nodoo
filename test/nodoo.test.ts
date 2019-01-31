@@ -23,7 +23,8 @@ import {
   createDB,
   createService,
   OdooJSONRPCError,
-  statusCodeToExceptionType
+  statusCodeToExceptionType,
+  addExceptionTypeToOdooJSONRPCError
 } from '../src/nodoo'
 import { fieldsGetResult } from './methodsResult'
 
@@ -1310,6 +1311,25 @@ describe('Service Operation Error Preparation Test', () => {
     done()
   })
 
+  it('can add exception type to OdooJSONRPCError', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      code: 100,
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'user_error',
+        message: 'Some user error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    expect(addExceptionTypeToOdooJSONRPCError(odooJSONRPCError).data.exception_type).toBe(
+      'authentication_error'
+    )
+    done()
+  })
+
   it('can create an user error operation error', done => {
     const odooJSONRPCError: OdooJSONRPCError = {
       code: 200,
@@ -1460,6 +1480,28 @@ describe('Service Operation Error Preparation Test', () => {
     })
 
     expect(serviceOperationError.kind).toBe('exceptORM')
+    expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
+    done()
+  })
+
+  it('can create an authentication error operation error', done => {
+    const odooJSONRPCError: OdooJSONRPCError = {
+      code: 100,
+      data: {
+        arguments: [],
+        debug: '',
+        exception_type: 'except_orm',
+        message: 'Some authentication error message.',
+        name: ''
+      },
+      message: 'Odoo Server Error'
+    }
+
+    const serviceOperationError = createServiceOperationError({
+      error: addExceptionTypeToOdooJSONRPCError(odooJSONRPCError)
+    })
+
+    expect(serviceOperationError.kind).toBe('authenticationError')
     expect(serviceOperationError.message).toBe(odooJSONRPCError.data.message)
     done()
   })

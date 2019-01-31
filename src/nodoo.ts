@@ -401,7 +401,7 @@ export const statusCodeToExceptionType = (
   }
 }
 
-const addExceptionTypeToOdooJSONRPCError = ({
+export const addExceptionTypeToOdooJSONRPCError = ({
   code,
   data,
   ...rest
