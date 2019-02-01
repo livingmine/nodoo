@@ -521,7 +521,7 @@ export const createService = ({
         /* istanbul ignore next */
       } else if (result.error) {
         /* tslint:disable:no-unnecessary-type-assertion */
-
+        console.log('err', result.error)
         return left(
           createServiceOperationError({
             error: addExceptionTypeToOdooJSONRPCError(result.error)
@@ -1183,7 +1183,7 @@ export const createCallMethod = ({
     serviceType: 'model',
     params: {
       args,
-      kwargs: {},
+      kwargs: kwargs,
       method: methodName,
       model: modelName
     },
