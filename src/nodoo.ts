@@ -665,7 +665,7 @@ interface SearchRead
     domain: Array<any>
     fields?: Array<string>
     offset?: number
-    limit: number
+    limit: number | boolean
     sort?: string
   }
   path: '/web/dataset/search_read'
@@ -873,7 +873,7 @@ export const createDelete = ({ modelName, ids, sessionToken }: CreateDeleteParam
 interface CreateSearchParams extends BaseModelServiceOperationParams {
   domain: Array<any>
   offset?: number
-  limit?: number
+  limit?: number | boolean
   order?: string
   count?: boolean
 }
@@ -884,7 +884,7 @@ export const createSearch = ({
   /* istanbul ignore next */
   offset = 0,
   /* istanbul ignore next */
-  limit = 10,
+  limit = false,
   order,
   /* istanbul ignore next */
   count = false,
@@ -962,7 +962,7 @@ export const createRead = ({
 interface CreateSearchReadParams extends BaseModelServiceOperationParams {
   domain: Array<any>
   fields?: Array<string>
-  limit?: number
+  limit?: number | boolean
   offset?: number
   sort?: string
 }
@@ -973,7 +973,7 @@ export const createSearchRead = ({
   /* istanbul ignore next */
   fields = [],
   /* istanbul ignore next */
-  limit = 10,
+  limit = false,
   /* istanbul ignore next */
   offset = 0,
   /* istanbul ignore next */
