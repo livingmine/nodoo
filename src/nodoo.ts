@@ -67,10 +67,20 @@ type CreateClientParams = {
   operation: ServiceOperation
 }
 
+type CreateSecureClientParams = {
+  clientOptions: SecureClientOptions
+  operation: ServiceOperation
+}
+
+type CreateInsecureClientParams = {
+  clientOptions: InsecureClientOptions
+  operation: ServiceOperation
+}
+
 export const createSecureClient = ({
   clientOptions,
   operation
-}: CreateClientParams): SecureClient => {
+}: CreateSecureClientParams): SecureClient => {
   switch (operation.serviceType) {
     case 'common': {
       switch (operation.path) {
@@ -170,7 +180,7 @@ export const createSecureClient = ({
 export const createInsecureClient = ({
   clientOptions,
   operation
-}: CreateClientParams): InsecureClient => {
+}: CreateInsecureClientParams): InsecureClient => {
   switch (operation.serviceType) {
     case 'common': {
       switch (operation.path) {
@@ -182,7 +192,7 @@ export const createInsecureClient = ({
           })
           return {
             kind: 'insecure',
-            client: fetch(`http://${clientOptions.host}${operation.path}`, {
+            client: fetch(`http://${clientOptions.host}:${clientOptions.port}${operation.path}`, {
               method: 'POST',
               body: data,
               headers: {
@@ -201,7 +211,7 @@ export const createInsecureClient = ({
           })
           return {
             kind: 'insecure',
-            client: fetch(`http://${clientOptions.host}${operation.path}`, {
+            client: fetch(`http://${clientOptions.host}:${clientOptions.port}${operation.path}`, {
               method: 'POST',
               body: data,
               headers: {
@@ -226,7 +236,7 @@ export const createInsecureClient = ({
       })
       return {
         kind: 'insecure',
-        client: fetch(`http://${clientOptions.host}${operation.path}`, {
+        client: fetch(`http://${clientOptions.host}:${clientOptions.port}${operation.path}`, {
           method: 'POST',
           body: data,
           headers: {
@@ -245,7 +255,7 @@ export const createInsecureClient = ({
       })
       return {
         kind: 'insecure',
-        client: fetch(`http://${clientOptions.host}${operation.path}`, {
+        client: fetch(`http://${clientOptions.host}:${clientOptions.port}${operation.path}`, {
           method: 'POST',
           body: data,
           headers: {
@@ -521,7 +531,6 @@ export const createService = ({
         /* istanbul ignore next */
       } else if (result.error) {
         /* tslint:disable:no-unnecessary-type-assertion */
-        console.log('err', result.error)
         return left(
           createServiceOperationError({
             error: addExceptionTypeToOdooJSONRPCError(result.error)
