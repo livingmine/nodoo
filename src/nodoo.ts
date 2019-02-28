@@ -831,6 +831,7 @@ export const createGetVersion = (): GetVersion => {
 interface BaseModelServiceOperationParams {
   modelName: string
   sessionToken: string
+  kwargs: object
 }
 
 interface CreateCreateParams extends BaseModelServiceOperationParams {
@@ -840,7 +841,8 @@ interface CreateCreateParams extends BaseModelServiceOperationParams {
 export const createCreate = ({
   modelName,
   fieldsValues,
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateCreateParams): Create => {
   const create: Create = {
     kind: 'create',
@@ -848,7 +850,7 @@ export const createCreate = ({
     path: '/web/dataset/call_kw',
     params: {
       args: [fieldsValues],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'create',
       model: modelName
     },
@@ -862,14 +864,19 @@ interface CreateDeleteParams extends BaseModelServiceOperationParams {
   ids: Array<number>
 }
 
-export const createDelete = ({ modelName, ids, sessionToken }: CreateDeleteParams): Delete => {
+export const createDelete = ({
+  modelName,
+  ids,
+  sessionToken,
+  kwargs
+}: CreateDeleteParams): Delete => {
   const unlink: Delete = {
     kind: 'delete',
     serviceType: 'model',
     path: '/web/dataset/call_kw',
     params: {
       args: [ids],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'unlink',
       model: modelName
     },
@@ -887,24 +894,31 @@ interface CreateSearchParams extends BaseModelServiceOperationParams {
   count?: boolean
 }
 
+// TODO: Add test for createSearch
 export const createSearch = ({
+  /* istanbul ignore next */
   modelName,
+  /* istanbul ignore next */
   domain,
   /* istanbul ignore next */
   offset = 0,
   /* istanbul ignore next */
   limit = false,
+  /* istanbul ignore next */
   order,
   /* istanbul ignore next */
   count = false,
-  sessionToken
+  /* istanbul ignore next */
+  sessionToken,
+  /* istanbul ignore next */
+  kwargs
 }: CreateSearchParams): Search => {
   const search: Search = {
     kind: 'search',
     serviceType: 'model',
     params: {
       args: [domain, offset, limit, order, count],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'search',
       model: modelName
     },
@@ -922,14 +936,15 @@ interface CreateSearchCountParams extends BaseModelServiceOperationParams {
 export const createSearchCount = ({
   modelName,
   searchDomain,
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateSearchCountParams): SearchCount => {
   const searchCount: SearchCount = {
     kind: 'searchCount',
     serviceType: 'model',
     params: {
       args: [searchDomain],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'search_count',
       model: modelName
     },
@@ -950,14 +965,15 @@ export const createRead = ({
   modelName,
   ids,
   fields = [],
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateReadParams): Read => {
   const read: Read = {
     kind: 'read',
     serviceType: 'model',
     params: {
       args: [ids, fields],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'read',
       model: modelName
     },
@@ -967,6 +983,8 @@ export const createRead = ({
 
   return read
 }
+
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 
 interface CreateSearchReadParams extends BaseModelServiceOperationParams {
   domain: Array<any>
@@ -988,7 +1006,7 @@ export const createSearchRead = ({
   /* istanbul ignore next */
   sort = '',
   sessionToken
-}: CreateSearchReadParams): SearchRead => {
+}: Omit<CreateSearchReadParams, 'kwargs'>): SearchRead => {
   const searchRead: SearchRead = {
     kind: 'searchRead',
     serviceType: 'model',
@@ -1023,14 +1041,15 @@ export const createNameSearch = ({
   operator = 'ilike',
   /* istanbul ignore next */
   searchDomain = [],
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateNameSearchParams): NameSearch => {
   const nameSearch: NameSearch = {
     kind: 'nameSearch',
     serviceType: 'model',
     params: {
       args: [nameToSearch, searchDomain, operator, limit],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'name_search',
       model: modelName
     },
@@ -1050,14 +1069,15 @@ export const createUpdate = ({
   modelName,
   ids,
   fieldsValues,
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateUpdateParams): Update => {
   const update: Update = {
     kind: 'update',
     serviceType: 'model',
     params: {
       args: [ids, fieldsValues],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'write',
       model: modelName
     },
@@ -1075,14 +1095,15 @@ interface CreateDefaultGetParams extends BaseModelServiceOperationParams {
 export const createDefaultGet = ({
   modelName,
   fieldsNames,
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateDefaultGetParams): DefaultGet => {
   const defaultGet: DefaultGet = {
     kind: 'defaultGet',
     serviceType: 'model',
     params: {
       args: [fieldsNames],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'default_get',
       model: modelName
     },
@@ -1103,14 +1124,15 @@ export const createFieldsGet = ({
   fieldsNames = [],
   /* istanbul ignore next */
   attributes = [],
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateFieldsGetParams): FieldsGet => {
   const fieldsGet: FieldsGet = {
     kind: 'fieldsGet',
     serviceType: 'model',
     params: {
       args: [fieldsNames, attributes],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'fields_get',
       model: modelName
     },
@@ -1126,13 +1148,18 @@ interface CreateNameGetParams extends BaseModelServiceOperationParams {
   ids: Array<number>
 }
 
-export const createNameGet = ({ modelName, ids, sessionToken }: CreateNameGetParams): NameGet => {
+export const createNameGet = ({
+  modelName,
+  ids,
+  sessionToken,
+  kwargs
+}: CreateNameGetParams): NameGet => {
   const nameGet: NameGet = {
     kind: 'nameGet',
     serviceType: 'model',
     params: {
       args: [ids],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'name_get',
       model: modelName
     },
@@ -1155,14 +1182,15 @@ export const createOnChange = ({
   values,
   fieldName,
   fieldOnChange,
-  sessionToken
+  sessionToken,
+  kwargs
 }: CreateOnChangeParams): OnChange => {
   const onChange: OnChange = {
     kind: 'onChange',
     serviceType: 'model',
     params: {
       args: [[], values, fieldName, fieldOnChange],
-      kwargs: {},
+      kwargs: kwargs,
       method: 'onchange',
       model: modelName
     },
@@ -1177,7 +1205,6 @@ interface CreateCallMethodParams extends BaseModelServiceOperationParams {
   modelName: string
   methodName: string
   args: Array<any>
-  kwargs?: any
 }
 
 export const createCallMethod = ({

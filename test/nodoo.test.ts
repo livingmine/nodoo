@@ -149,9 +149,14 @@ describe('Common Service Test', () => {
       })
     )
 
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
+    // const clientOptions = createSecureClientOptions({
+    //   host: 'odoo.topbrand.rubyh.co'
+    // })
+    const insecureClientOptions = createInsecureClientOptions({
+      host: 'localhost',
+      port: 8069
     })
+    // fetchMock.mockImplementationOnce(require.requireActual('cross-fetch').default)
 
     const operation = createAuthenticate({
       credentials: createAuthenticateCredentials({
@@ -163,7 +168,7 @@ describe('Common Service Test', () => {
 
     createService({
       operation,
-      clientOptions
+      clientOptions: insecureClientOptions
     }).addListener({
       next: result => {
         result.fold(
@@ -277,10 +282,10 @@ describe('Model Service Test', () => {
       host: 'odoo.topbrand.rubyh.co'
     })
 
-    const operation = createSearch({
-      modelName: 'res.partner',
+    const operation = createSearchRead({
+      modelName: 'ir.ui.menu',
       domain: [],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: '090db11a44387c9e2d1b63ea9d8ff171d344e4e5'
     })
 
     createService({
@@ -326,7 +331,8 @@ describe('Model Service Test', () => {
     const operation = createSearchCount({
       modelName: 'res.partner',
       searchDomain: [],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -369,21 +375,27 @@ describe('Model Service Test', () => {
         result: resp
       })
     )
+    // fetchMock.mockImplementationOnce(require.requireActual('cross-fetch').default)
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
+    const insecureClientOptions = createInsecureClientOptions({
+      host: 'localhost',
+      port: 8069
+    })
 
     const operation = createRead({
-      modelName: 'res.partner',
-      ids: [6],
-      fields: ['name'],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      modelName: 'ir.ui.menu',
+      ids: [77],
+      fields: [],
+      sessionToken: '54b215fcd0cfe75f64610279c7e4e88327881201',
+      kwargs: {}
     })
 
     createService({
       operation,
-      clientOptions
+      clientOptions: insecureClientOptions
     }).addListener({
       next: result => {
         result.fold(
@@ -430,7 +442,8 @@ describe('Model Service Test', () => {
     const operation = createRead({
       modelName: 'res.partner',
       ids: [6],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -479,7 +492,8 @@ describe('Model Service Test', () => {
       fieldsValues: {
         name: 'New User'
       },
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -530,7 +544,8 @@ describe('Model Service Test', () => {
         id: 11,
         name: 'Buyer Tokopedia'
       },
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -577,7 +592,8 @@ describe('Model Service Test', () => {
     const operation = createDelete({
       modelName: 'res.partner',
       ids: [9999],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -683,7 +699,8 @@ describe('Model Service Test', () => {
       limit: 5,
       operator: 'ilike',
       searchDomain: [['is_company', '=', false]],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -771,7 +788,8 @@ describe('Model Service Test', () => {
         'activity_ids',
         'message_ids'
       ],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -816,7 +834,8 @@ describe('Model Service Test', () => {
 
     const operation = createFieldsGet({
       modelName: 'purchase.order',
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -864,7 +883,8 @@ describe('Model Service Test', () => {
     const operation = createFieldsGet({
       modelName: 'purchase.order',
       fieldsNames: ['invoice_count', 'picking_ids'],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -911,7 +931,8 @@ describe('Model Service Test', () => {
     const operation = createNameGet({
       modelName: 'purchase.order',
       ids: [1],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e',
+      kwargs: {}
     })
 
     createService({
@@ -955,77 +976,83 @@ describe('Model Service Test', () => {
         result: resp
       })
     )
+    // fetchMock.mockImplementationOnce(require.requireActual('cross-fetch').default)
 
     const clientOptions = createSecureClientOptions({
       host: 'odoo.topbrand.rubyh.co'
     })
 
+    const insecureClientOptions = createInsecureClientOptions({
+      host: 'localhost',
+      port: 8069
+    })
+
     const operation = createOnChange({
       modelName: 'purchase.order',
+      // values: {
+      //   "partner_id": 18,
+      //   "payment_term_id": 2,
+      //   "picking_type_id": 3,
+      //   "order_line":[
+      //     [0, 0,
+      //       {
+      //         "name":"[Pilgrim One KN] Hanggi Anggono",
+      //         "product_qty":100,
+      //         "product_uom":1,
+      //         "taxes_id":[
+      //           [6, false, [2]]
+      //         ],
+      //         "price_unit":1000,
+      //         "price_subtotal":100000,
+      //         "date_planned":"2019-03-10 18:33:08",
+      //         "product_id":61
+      //       }
+      //     ]
+      //   ],
+      //   "amount_tax":0,
+      //   "amount_untaxed":0,
+      //   "amount_total":0,
+      //   "notes":"",
+      //   "state":"draft",
+      //   "name":"New",
+      //   "currency_id":13,
+      //   "date_order":"2019-02-26 18:33:08",
+      //   "company_id":1,
+      //   "partner_ref":""
+      // }
       values: {
-        state: 'draft',
-        picking_count: 0,
-        invoice_count: 0,
         name: 'New',
-        currency_id: 3,
-        date_order: '2018-12-19 04:51:04',
-        company_id: 1,
-        picking_type_id: 4,
-        invoice_status: 'no',
-        picking_ids: [[6, false, []]],
-        invoice_ids: [[6, false, []]],
-        partner_id: false,
-        partner_ref: false,
-        is_shipped: false,
-        origin: false,
-        order_line: [],
-        amount_untaxed: 0,
         amount_tax: 0,
         amount_total: 0,
-        notes: false,
+        amount_untaxed: 0,
+        company_id: 1,
+        currency_id: 13,
         date_planned: false,
-        dest_address_id: false,
-        default_location_dest_id_usage: false,
-        incoterm_id: false,
-        payment_term_id: false,
-        fiscal_position_id: false,
-        date_approve: false,
-        message_follower_ids: [],
-        activity_ids: [],
-        message_ids: []
+        date_order: '2019-02-26 18:33:08',
+        notes: '',
+        order_line: [
+          [
+            0,
+            false,
+            {
+              name: '[Pilgrim One KN] Hanggi Anggono',
+              product_id: 61,
+              date_planned: '2019-03-10 18:33:08',
+              product_qty: 100,
+              product_uom: 1,
+              price_unit: 1000,
+              taxes_id: [[6, false, [2]]],
+              price_subtotal: 100000
+            }
+          ]
+        ],
+        partner_id: 18,
+        payment_term_id: 2,
+        picking_type_id: 3,
+        state: 'draft',
+        partner_ref: ''
       },
-      fieldName: [
-        'state',
-        'picking_count',
-        'picking_ids',
-        'invoice_count',
-        'invoice_ids',
-        'name',
-        'partner_id',
-        'partner_ref',
-        'currency_id',
-        'is_shipped',
-        'date_order',
-        'origin',
-        'company_id',
-        'order_line',
-        'amount_untaxed',
-        'amount_tax',
-        'amount_total',
-        'notes',
-        'date_planned',
-        'picking_type_id',
-        'dest_address_id',
-        'default_location_dest_id_usage',
-        'incoterm_id',
-        'invoice_status',
-        'payment_term_id',
-        'fiscal_position_id',
-        'date_approve',
-        'message_follower_ids',
-        'activity_ids',
-        'message_ids'
-      ],
+      fieldName: ['order_line'],
       fieldOnChange: {
         state: '1',
         picking_count: '',
@@ -1077,12 +1104,13 @@ describe('Model Service Test', () => {
         activity_ids: '',
         message_ids: ''
       },
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      sessionToken: 'b4b69d6a1766293bdd6db66d1b6d9c114ccd5a5d',
+      kwargs: {}
     })
 
     createService({
       operation,
-      clientOptions
+      clientOptions: insecureClientOptions
     }).addListener({
       next: result => {
         result.fold(
@@ -1116,21 +1144,54 @@ describe('Model Service Test', () => {
         result: resp
       })
     )
+    // fetchMock.mockImplementationOnce(require.requireActual('cross-fetch').default)
 
-    const clientOptions = createSecureClientOptions({
-      host: 'odoo.topbrand.rubyh.co'
+    // const clientOptions = createSecureClientOptions({
+    //   host: 'odoo.topbrand.rubyh.co'
+    // })
+    const insecureClientOptions = createInsecureClientOptions({
+      host: 'localhost',
+      port: 8069
     })
 
     const operation = createCallMethod({
-      modelName: 'purchase.order',
-      methodName: 'copy',
-      args: [[46]],
-      sessionToken: 'bd697b2dba6ec1cd1f79c504cd280bb9040a788e'
+      modelName: 'ir.ui.menu',
+      methodName: 'load_menus',
+      args: [false],
+      kwargs: {},
+      sessionToken: '54b215fcd0cfe75f64610279c7e4e88327881201'
     })
+    // const operation = createCallMethod({
+    //   modelName: 'sale.report',
+    //   methodName: 'read_group',
+    //   args: [],
+    //   kwargs: {
+    //     domain: [
+    //       [
+    //         "state",
+    //         "not in",
+    //         [
+    //           "draft",
+    //           "cancel",
+    //           "sent"
+    //         ]
+    //       ]
+    //     ],
+    //     fields: [
+    //       "date",
+    //       "price_subtotal",
+    //       "margin"
+    //     ],
+    //     groupby: [
+    //       "date:month"
+    //     ],
+    //   },
+    //   sessionToken: "778bd75702c5a7abf05c668b15a9b3144ceca399"
+    // });
 
     createService({
       operation,
-      clientOptions
+      clientOptions: insecureClientOptions
     }).addListener({
       next: result => {
         result.fold(
