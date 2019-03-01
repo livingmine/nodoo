@@ -831,7 +831,7 @@ export const createGetVersion = (): GetVersion => {
 interface BaseModelServiceOperationParams {
   modelName: string
   sessionToken: string
-  kwargs: object
+  kwargs?: object
 }
 
 interface CreateCreateParams extends BaseModelServiceOperationParams {
@@ -842,7 +842,8 @@ export const createCreate = ({
   modelName,
   fieldsValues,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateCreateParams): Create => {
   const create: Create = {
     kind: 'create',
@@ -868,7 +869,8 @@ export const createDelete = ({
   modelName,
   ids,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateDeleteParams): Delete => {
   const unlink: Delete = {
     kind: 'delete',
@@ -911,8 +913,9 @@ export const createSearch = ({
   /* istanbul ignore next */
   sessionToken,
   /* istanbul ignore next */
-  kwargs
+  kwargs = {}
 }: CreateSearchParams): Search => {
+  /* istanbul ignore next */
   const search: Search = {
     kind: 'search',
     serviceType: 'model',
@@ -926,6 +929,7 @@ export const createSearch = ({
     path: '/web/dataset/call_kw'
   }
 
+  /* istanbul ignore next */
   return search
 }
 
@@ -937,7 +941,8 @@ export const createSearchCount = ({
   modelName,
   searchDomain,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateSearchCountParams): SearchCount => {
   const searchCount: SearchCount = {
     kind: 'searchCount',
@@ -966,7 +971,8 @@ export const createRead = ({
   ids,
   fields = [],
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateReadParams): Read => {
   const read: Read = {
     kind: 'read',
@@ -1042,7 +1048,8 @@ export const createNameSearch = ({
   /* istanbul ignore next */
   searchDomain = [],
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateNameSearchParams): NameSearch => {
   const nameSearch: NameSearch = {
     kind: 'nameSearch',
@@ -1070,7 +1077,8 @@ export const createUpdate = ({
   ids,
   fieldsValues,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateUpdateParams): Update => {
   const update: Update = {
     kind: 'update',
@@ -1096,7 +1104,8 @@ export const createDefaultGet = ({
   modelName,
   fieldsNames,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateDefaultGetParams): DefaultGet => {
   const defaultGet: DefaultGet = {
     kind: 'defaultGet',
@@ -1125,7 +1134,8 @@ export const createFieldsGet = ({
   /* istanbul ignore next */
   attributes = [],
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateFieldsGetParams): FieldsGet => {
   const fieldsGet: FieldsGet = {
     kind: 'fieldsGet',
@@ -1152,7 +1162,8 @@ export const createNameGet = ({
   modelName,
   ids,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateNameGetParams): NameGet => {
   const nameGet: NameGet = {
     kind: 'nameGet',
@@ -1183,7 +1194,8 @@ export const createOnChange = ({
   fieldName,
   fieldOnChange,
   sessionToken,
-  kwargs
+  /* istanbul ignore next */
+  kwargs = {}
 }: CreateOnChangeParams): OnChange => {
   const onChange: OnChange = {
     kind: 'onChange',
@@ -1211,7 +1223,8 @@ export const createCallMethod = ({
   modelName,
   methodName,
   args,
-  kwargs,
+  /* istanbul ignore next */
+  kwargs = {},
   sessionToken
 }: CreateCallMethodParams): CallMethod => {
   const callMethod: CallMethod = {
