@@ -676,6 +676,7 @@ interface SearchRead
     offset?: number
     limit: number | boolean
     sort?: string
+    context?: any
   }
   path: '/web/dataset/search_read'
 }
@@ -998,6 +999,7 @@ interface CreateSearchReadParams extends BaseModelServiceOperationParams {
   limit?: number | boolean
   offset?: number
   sort?: string
+  context?: any
 }
 
 export const createSearchRead = ({
@@ -1011,7 +1013,9 @@ export const createSearchRead = ({
   offset = 0,
   /* istanbul ignore next */
   sort = '',
-  sessionToken
+  sessionToken,
+  /* istanbul ignore next */
+  context = {}
 }: Omit<CreateSearchReadParams, 'kwargs'>): SearchRead => {
   const searchRead: SearchRead = {
     kind: 'searchRead',
@@ -1022,7 +1026,8 @@ export const createSearchRead = ({
       offset,
       limit,
       domain,
-      sort
+      sort,
+      context
     },
     path: '/web/dataset/search_read',
     sessionToken
