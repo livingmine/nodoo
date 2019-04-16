@@ -778,6 +778,15 @@ interface CreateDB extends BaseDBServiceOperation {
   }
 }
 
+interface DuplicateDB extends BaseDBServiceOperation {
+  kind: 'dbDuplicateDatabase'
+  params: {
+    service: 'db'
+    method: 'duplicate_database'
+    args: Array<any>
+  }
+}
+
 export type ServiceOperationResult = any
 
 export type ServiceOperation = CommonServiceOperation | ModelServiceOperation | DBServiceOperation
@@ -798,7 +807,7 @@ type ModelServiceOperation =
   | OnChange
   | CallMethod
 
-type DBServiceOperation = DBExist | ListDB | CreateDB
+type DBServiceOperation = DBExist | ListDB | CreateDB | DuplicateDB
 
 interface CreateAuthenticateParams {
   credentials: AuthenticateCredentials
@@ -1307,6 +1316,31 @@ export const createDB = ({
     params: {
       args: [adminPassword, dbName, demo, lang, userPassword, login, countryCode],
       method: 'create_database',
+      service: 'db'
+    },
+    path: '/jsonrpc'
+  }
+
+  return createDB
+}
+
+type CreateDuplicateDBParams = {
+  adminPassword: string
+  dbOriginalName: string
+  dbName: string
+}
+
+export const duplicateDB = ({
+  adminPassword,
+  dbOriginalName,
+  dbName
+}: CreateDuplicateDBParams): DuplicateDB => {
+  const createDB: DuplicateDB = {
+    kind: 'dbDuplicateDatabase',
+    serviceType: 'db',
+    params: {
+      args: [adminPassword, dbOriginalName, dbName],
+      method: 'duplicate_database',
       service: 'db'
     },
     path: '/jsonrpc'

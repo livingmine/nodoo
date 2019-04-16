@@ -21,6 +21,7 @@ import {
   createServiceOperationError,
   createAuthenticateCredentials,
   createDB,
+  duplicateDB,
   createService,
   OdooJSONRPCError,
   statusCodeToExceptionType,
@@ -1331,6 +1332,52 @@ describe('DB Service Test', () => {
       lang: 'en_US',
       login: 'admin',
       userPassword: 'password'
+    })
+
+    createService({
+      operation,
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
+    })
+  })
+
+  it('can duplicate a database', done => {
+    const resp = true
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+
+    const clientOptions = createSecureClientOptions({
+      host: 'odoo.topbrand.rubyh.co'
+    })
+
+    const operation = duplicateDB({
+      adminPassword: 'admin',
+      dbName: 'a_new_db_name',
+      dbOriginalName: 'base_db'
     })
 
     createService({
