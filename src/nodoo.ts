@@ -6,13 +6,19 @@ import { ServiceOperation, ServiceOperationResult } from './controllers/controll
 import {
   ServiceOperationError,
   createServiceOperationError,
-  addExceptionTypeToOdooJSONRPCError
+  addExceptionTypeToOdooJSONRPCError,
+  OdooJSONRPCError
 } from './error'
 import { ClientOptions, createClient } from './clients/client'
 
 type CreateServiceParams = {
   operation: ServiceOperation
   clientOptions: ClientOptions
+}
+
+type OdooResponse = {
+  result: any
+  error: OdooJSONRPCError
 }
 
 export const createService = ({
@@ -26,21 +32,18 @@ export const createService = ({
       return xs.fromPromise(result.json())
     })
     .flatten()
-    .map(result => {
+    .map((result: OdooResponse) => {
       /* istanbul ignore next */
       if (result.result) {
-        return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
+        return right(result.result)
       } else if (result.error) {
         return left(
           createServiceOperationError({
             error: addExceptionTypeToOdooJSONRPCError(result.error)
           })
-        ) as Either<ServiceOperationError, ServiceOperationResult>
+        )
       }
-      return right(result.result) as Either<ServiceOperationError, ServiceOperationResult>
-    })
-    .map(result => {
-      return result
+      return right(result.result)
     })
 }
 
