@@ -1284,6 +1284,51 @@ describe('JSONRPC DB Service Test', () => {
       }
     })
   })
+
+  it('can drop a database', done => {
+    const resp = true
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        result: resp
+      })
+    )
+
+    const clientOptions = createInsecureClientOptions({
+      host: 'localhost',
+      port: 11069
+    })
+
+    const operation = databaseProtected.createDropDB({
+      dbName: 'a_new_db_namez'
+    })
+
+    createService({
+      operation,
+      clientOptions
+    }).addListener({
+      next: result => {
+        result.fold(
+          (error: any) => {
+            expect(error).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          },
+          (data: any) => {
+            expect(data).toEqual(resp)
+            expect(fetchMock.mock.calls.length).toEqual(1)
+            done()
+          }
+        )
+      },
+      error: error => {
+        expect(error).toEqual(resp)
+        done()
+      },
+      complete: () => {
+        done()
+      }
+    })
+  })
 })
 
 describe('HTTP Session Service Test', () => {

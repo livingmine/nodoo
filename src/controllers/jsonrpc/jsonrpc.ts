@@ -63,6 +63,11 @@ import {
   createAuthenticate
 } from './operations/common/authenticate'
 import { createGetVersion, GetVersion } from './operations/common/getVersion'
+import {
+  CreateDropDBParams,
+  DropDB,
+  createDropDBWithAdminPassword
+} from './operations/database/dropDB'
 
 interface ModelJSONRPCOperationCreator {
   createCreate(createCreateParams: CreateCreateParams): Create
@@ -83,6 +88,7 @@ interface ModelJSONRPCOperationCreator {
 interface ProtectedDBJSONRPCOperationCreator {
   createCreateDB(createCreateDBParams: CreateCreateDBParams): CreateDB
   createDuplicateDB(createDuplicateDBParams: CreateDuplicateDBParams): DuplicateDB
+  createDropDB(createDropDBParams: CreateDropDBParams): DropDB
 }
 
 interface PublicDBJSONRPCOperationCreator {
@@ -110,7 +116,8 @@ export const jsonController = (): JSONRPC => ({
   operation: {
     databaseProtected: ({ adminPassword }: DatabaseCredentials) => ({
       createCreateDB: createCreateDBWithAdminPassword(adminPassword),
-      createDuplicateDB: createDuplicateDBWithAdminPassword(adminPassword)
+      createDuplicateDB: createDuplicateDBWithAdminPassword(adminPassword),
+      createDropDB: createDropDBWithAdminPassword(adminPassword)
     }),
     databasePublic: {
       createDBExist,
