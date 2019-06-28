@@ -1,3 +1,4 @@
+type InternalErrorException = 'internal_error'
 type UserErrorException = 'user_error'
 type WarningException = 'warning'
 type AccessErrorException = 'access_error'
@@ -7,6 +8,7 @@ type ValidationErrorException = 'validation_error'
 type ExceptORMException = 'except_orm'
 type AuthenticationException = 'authentication_error'
 
+const InternalErrorException: InternalErrorException = 'internal_error'
 const UserErrorException: UserErrorException = 'user_error'
 const WarningException: WarningException = 'warning'
 const AccessErrorException: AccessErrorException = 'access_error'
@@ -19,6 +21,7 @@ const AuthenticationException: AuthenticationException = 'authentication_error'
 type OdooStatusCode = 100 | 200
 
 type OdooExceptionType =
+  | InternalErrorException
   | UserErrorException
   | WarningException
   | AccessErrorException
@@ -43,6 +46,10 @@ export interface OdooJSONRPCError {
 interface BaseServiceError {
   debug: string
   message: string
+}
+
+interface InternalError extends BaseServiceError {
+  kind: 'internalError'
 }
 
 interface UserError extends BaseServiceError {
@@ -78,6 +85,7 @@ interface AuthenticationError extends BaseServiceError {
 }
 
 export type ServiceOperationError =
+  | InternalError
   | UserError
   | Warning
   | AccessError
@@ -130,6 +138,11 @@ export const createServiceOperationError = ({
     message: error.data.message
   }
   switch (error.data.exception_type) {
+    case InternalErrorException:
+      return {
+        kind: 'internalError',
+        ...errorInformation
+      }
     case UserErrorException:
       return {
         kind: 'userError',
